@@ -86,6 +86,13 @@ enum dsa_opcode {
 	DSA_OPCODE_DIF_STRP,
 	DSA_OPCODE_DIF_UPDT,
 	DSA_OPCODE_DIX_GEN = 0x17,
+	DSA_OPCODE_TYPE_CONV = 0x18,
+	DSA_OPCODE_REDUCE = 0x19,
+	DSA_OPCODE_REDUCE_DUALCAST = 0x1A,
+	DSA_OPCODE_GATHER_REDUCE = 0x1B,
+	DSA_OPCODE_GATHER_COPY = 0x1C,
+	DSA_OPCODE_SCATTER_COPY = 0x1D,
+	DSA_OPCODE_SCATTER_FILL = 0x1E,
 	DSA_OPCODE_CFLUSH = 0x20,
 	DSA_OPCODE_UPDATE_WIN,
 	DSA_OPCODE_RS_IPASID_MEMCOPY = 0x23,
@@ -197,6 +204,7 @@ struct hw_desc {
 	uint64_t	completion_addr;
 	union {
 		uint64_t	src_addr;
+		uint64_t	src1_addr;
 		uint64_t	rdback_addr;
 		uint64_t	pattern;
 		uint64_t	desc_list_addr;
@@ -387,6 +395,19 @@ struct hw_desc {
 			uint32_t        ref_tag_seed;
 			uint16_t        app_tag_mask;
 			uint16_t        app_tag_seed;
+		};
+
+		/* DSA3.0 reduce */
+		struct {
+			uint64_t	dst1_addr;
+			uint64_t	dst2_addr;
+			uint32_t        iData:4;
+			uint32_t        oData:4;
+			uint32_t        compute_type:4;
+			uint32_t        compute_flags:12;
+			uint32_t        inter_domain_selector:8;
+			uint16_t	idpt_handle1;
+			uint16_t	idpt_handle2;
 		};
 
 		uint8_t		op_specific[24];
