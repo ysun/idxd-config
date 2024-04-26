@@ -812,3 +812,16 @@ void dsa_prep_batch(struct batch_task *btsk, unsigned long desc_flags)
 
 	ctsk->comp->status = 0;
 }
+
+void dsa_prep_reduce(struct acctest_context *ctx, struct task *tsk)
+{
+	//struct dsa_hw_desc *hw = tsk->desc;
+	info("preparing descriptor for reduce\n");
+
+	memset(tsk->dst1, 0, tsk->xfer_size);
+	acctest_prep_desc_common(tsk->desc, tsk->opcode, (uint64_t)(tsk->dst1),
+				 (uint64_t)(tsk->src1), tsk->xfer_size, tsk->dflags);
+
+	tsk->desc->completion_addr = (uint64_t)(tsk->comp);
+	tsk->comp->status = 0;
+}

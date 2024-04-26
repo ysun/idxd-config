@@ -468,6 +468,43 @@ int init_cflush(struct task *tsk, int tflags, int opcode, unsigned long xfer_siz
 	return ACCTEST_STATUS_OK;
 }
 
+int init_reduce(struct task *tsk, int tflags, int opcode, unsigned long xfer_size)
+{
+	unsigned long force_align = ADDR_ALIGNMENT;
+
+	tsk->pattern = 0x0123456789abcdef;
+	tsk->pattern2 = 0xfedcba9876543210;
+	tsk->opcode = opcode;
+	tsk->test_flags = tflags;
+	tsk->xfer_size = xfer_size;
+
+	tsk->src1 = aligned_alloc(force_align, xfer_size);
+	if (!tsk->src1)
+		return -ENOMEM;
+	memset_pattern(tsk->src1, tsk->pattern, xfer_size);
+
+	tsk->src2 = aligned_alloc(force_align, xfer_size);
+	if (!tsk->src2)
+		return -ENOMEM;
+	memset_pattern(tsk->src2, tsk->pattern2, xfer_size);
+
+
+	tsk->dst1 = aligned_alloc(force_align, xfer_size);
+	if (!tsk->dst1)
+		return -ENOMEM;
+	memset_pattern(tsk->dst1, tsk->pattern2, xfer_size);
+
+	tsk->crc_seed = 0x12345678;
+	if (tsk->test_flags & (unsigned int)(READ_CRC_SEED)) {
+		tsk->crc_seed_addr = aligned_alloc(ADDR_ALIGNMENT, sizeof(*tsk->crc_seed_addr));
+		*tsk->crc_seed_addr = tsk->crc_seed;
+		tsk->crc_seed = 0x0;
+	}
+
+	return ACCTEST_STATUS_OK;
+}
+
+
 /* this function is re-used by batch task */
 int init_task(struct task *tsk, int tflags, int opcode,
 	      unsigned long xfer_size)
@@ -535,6 +572,10 @@ int init_task(struct task *tsk, int tflags, int opcode,
 
 	case DSA_OPCODE_CFLUSH:
 		rc = init_cflush(tsk, tflags, opcode, xfer_size);
+		break;
+
+	case DSA_OPCODE_REDUCE:
+		rc = init_reduce(tsk, tflags, opcode, xfer_size);
 		break;
 	}
 
@@ -1351,6 +1392,63 @@ again:
 	return ACCTEST_STATUS_OK;
 }
 
+int dsa_wait_reduce(struct acctest_context *ctx, struct task *tsk)
+{
+	struct hw_desc *desc = tsk->desc;
+	struct completion_record *comp = tsk->comp;
+
+	int rc;
+
+again:
+	rc = acctest_wait_on_desc_timeout(comp, ctx, ms_timeout);
+	if (rc < 0) {
+		err("reduce desc timeout\n");
+		return ACCTEST_STATUS_OK;
+	}
+
+	/* re-submit if PAGE_FAULT reported by HW && BOF is off */
+	if (stat_val(comp->status) == DSA_COMP_PAGE_FAULT_NOBOF &&
+		!(desc->flags & IDXD_OP_FLAG_BOF)) {
+		task_result_verify_reduce(tsk, 0);
+		//dsa_reprep_reduce(ctx, tsk);
+		goto again;
+	}
+
+	return ACCTEST_STATUS_OK;
+}
+
+int  dsa_reduce_multi_task_nodes(struct acctest_context *ctx)
+{
+	struct task_node *tsk_node = ctx->multi_task_node;
+	int ret = ACCTEST_STATUS_OK;
+
+	while (tsk_node) {
+		tsk_node->tsk->dflags = IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_RCR;
+		if ((tsk_node->tsk->test_flags & TEST_FLAGS_BOF) && ctx->bof)
+			tsk_node->tsk->dflags |= IDXD_OP_FLAG_BOF;
+
+		dsa_prep_reduce(ctx, tsk_node->tsk);
+		tsk_node = tsk_node->next;
+	}
+
+	tsk_node = ctx->multi_task_node;
+	while (tsk_node != NULL) {
+		acctest_desc_submit(ctx, tsk_node->tsk->desc);
+		tsk_node = tsk_node->next;
+	}
+	info("Submitted all reduce jobs\n");
+
+	tsk_node = ctx->multi_task_node;
+	while (tsk_node != NULL) {
+		ret = dsa_wait_reduce(ctx, tsk_node->tsk);
+		if (ret != ACCTEST_STATUS_OK)
+			info("Desc: %p failed with ret: %d \n", tsk_node->tsk->desc, tsk_node->tsk->comp->status);
+		tsk_node = tsk_node->next;
+	}
+
+	return ret;
+}
+
 int dsa_dif_check_multi_task_nodes(struct acctest_context *ctx)
 {
 	struct task_node *tsk_node = ctx->multi_task_node;
@@ -1592,6 +1690,9 @@ int task_result_verify(struct task *tsk, int mismatch_expected)
 		rc = task_result_verify_dif(tsk, tsk->xfer_size, mismatch_expected);
 		if (rc != ACCTEST_STATUS_OK)
 			return rc;
+	case DSA_OPCODE_REDUCE:
+		rc = task_result_verify_reduce(tsk, mismatch_expected);
+		return rc;
 	}
 
 	info("test with op %d passed\n", tsk->opcode);
@@ -1721,6 +1822,23 @@ int task_result_verify_ap_delta(struct task *tsk, int mismatch_expected)
 		    (unsigned char *)tsk->desc->src2_addr, data_size);
 	if (rc) {
 		err("apply delta mismatch, memcmp rc %d\n", rc);
+		return -ENXIO;
+	}
+	return ACCTEST_STATUS_OK;
+}
+
+int task_result_verify_reduce(struct task *tsk, int mismatch_expected)
+{
+	int rc;
+	unsigned int data_size = (tsk->comp->status == DSA_COMP_SUCCESS) ?
+			 tsk->desc->xfer_size : tsk->comp->bytes_completed;
+
+	if (mismatch_expected)
+		warn("invalid arg mismatch_expected for %d\n", tsk->opcode);
+
+	rc = memcmp((int *)tsk->desc->src_addr, (int *)tsk->desc->dst_addr, data_size);
+	if (rc) {
+		err("reduce mismatch, compl rec status: %d\n", tsk->comp->status);
 		return -ENXIO;
 	}
 	return ACCTEST_STATUS_OK;

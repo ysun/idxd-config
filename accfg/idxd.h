@@ -86,6 +86,13 @@ enum dsa_opcode {
 	DSA_OPCODE_DIF_STRP,
 	DSA_OPCODE_DIF_UPDT,
 	DSA_OPCODE_DIX_GEN = 0x17,
+	DSA_OPCODE_TYPE_CONV = 0x18,
+	DSA_OPCODE_REDUCE = 0x19,
+	DSA_OPCODE_REDUCE_DUALCAST = 0x1A,
+	DSA_OPCODE_GATHER_REDUCE = 0x1B,
+	DSA_OPCODE_GATHER_COPY = 0x1C,
+	DSA_OPCODE_SCATTER_COPY = 0x1D,
+	DSA_OPCODE_SCATTER_FILL = 0x1E,
 	DSA_OPCODE_CFLUSH = 0x20,
 	DSA_OPCODE_UPDATE_WIN,
 	DSA_OPCODE_RS_IPASID_MEMCOPY = 0x23,
@@ -298,6 +305,14 @@ struct hw_desc {
 		/* restricted ops with interpasid */
 		struct {
 			uint8_t rest_ip_res1[20];
+			union {
+				uint32_t        iData:4;
+				uint32_t        oData:4;
+				uint32_t        rsvd6:4;
+				uint32_t        compute_flags:12;
+				uint32_t        rsvd7:8;
+				uint8_t rest_ip_res11[4];
+			};
 			union {
 				uint16_t src_pasid_hndl;
 				uint8_t rest_ip_res2[2];
