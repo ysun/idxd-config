@@ -1645,6 +1645,13 @@ int task_result_verify(struct task *tsk, int mismatch_expected)
 
 	printf("!!!ysun: %s: status: %d\n", __func__, tsk->comp->status);
 
+	switch (tsk->opcode) {
+	case DSA_OPCODE_REDUCE:
+		rc = task_result_verify_reduce(tsk, mismatch_expected);
+		printf("!!!ysun: %s: rc: %d\n", __func__, rc);
+		return rc;
+	}
+
 	if (tsk->comp->status != DSA_COMP_SUCCESS)
 		return tsk->comp->status;
 
@@ -1696,10 +1703,12 @@ int task_result_verify(struct task *tsk, int mismatch_expected)
 		rc = task_result_verify_dif(tsk, tsk->xfer_size, mismatch_expected);
 		if (rc != ACCTEST_STATUS_OK)
 			return rc;
+/*
 	case DSA_OPCODE_REDUCE:
 		rc = task_result_verify_reduce(tsk, mismatch_expected);
 		printf("!!!ysun: %s: rc: %d\n", __func__, rc);
 		return rc;
+*/
 	}
 
 	info("test with op %d passed\n", tsk->opcode);
