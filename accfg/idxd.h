@@ -306,14 +306,6 @@ struct hw_desc {
 		struct {
 			uint8_t rest_ip_res1[20];
 			union {
-				uint32_t        iData:4;
-				uint32_t        oData:4;
-				uint32_t        rsvd6:4;
-				uint32_t        compute_flags:12;
-				uint32_t        rsvd7:8;
-				uint8_t rest_ip_res11[4];
-			};
-			union {
 				uint16_t src_pasid_hndl;
 				uint8_t rest_ip_res2[2];
 				uint16_t src1_pasid_hndl;
