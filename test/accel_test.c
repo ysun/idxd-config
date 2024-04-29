@@ -249,6 +249,7 @@ int acctest_alloc_multiple_tasks(struct acctest_context *ctx, int num_itr)
 	struct task_node *tmp_tsk_node;
 	int cnt = 0;
 
+	printf("!!!ysun:%s: num_itr: %d\n", __func__, num_itr);
 	while (cnt < num_itr) {
 		tmp_tsk_node = ctx->multi_task_node;
 		ctx->multi_task_node = (struct task_node *)malloc(sizeof(struct task_node));

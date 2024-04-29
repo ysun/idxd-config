@@ -852,6 +852,8 @@ static int test_reduce(struct acctest_context *ctx, size_t buf_size,
 
 		printf("tflags:%d\n",tflags);
 		printf("Reduce itreration : %lld tflags : 0x%X\n", (num_desc - itr)/range, tflags);
+		printf("!!!ysun: %s, num_desc:%d irt:%d, range:%d, tflags:0x%X\n",
+			__func__, num_desc, itr, range, tflags);
 		/* Allocate memory to all the task nodes, desc, compl rec*/
 		rc = acctest_alloc_multiple_tasks(ctx, i);
 		if (rc != ACCTEST_STATUS_OK) {
@@ -878,6 +880,8 @@ static int test_reduce(struct acctest_context *ctx, size_t buf_size,
 		  * In an iteration, if any descriptor failed,entire iteration wont be stopped
 		  * abruptly. Instead its terminated at the end of iteration*/
 		rc = dsa_reduce_multi_task_nodes(ctx);
+		printf("!!!ysun:%s: rc: %d\n", __func__, rc);
+
 		if (rc != ACCTEST_STATUS_OK) {
 			err("Reduce: failed for the iteration %d\n", itr);
 			return rc;
@@ -886,12 +890,14 @@ static int test_reduce(struct acctest_context *ctx, size_t buf_size,
 		tsk_node = ctx->multi_task_node;
 		while (tsk_node != NULL) {
 			rc = task_result_verify(tsk_node->tsk, 0);
+			printf("!!!ysun:%s: while rc: %d\n", __func__, rc);
 			tsk_node = tsk_node->next;
 		}
 
 		acctest_free_task(ctx);
 		itr = itr-range;
 	} //while for itr
+	printf("!!!ysun:%s: after while rc: %d\n", __func__, rc);
 	return rc;
 }
 
@@ -1039,10 +1045,14 @@ int main(int argc, char *argv[])
 			goto error;
 		break;
 	case DSA_OPCODE_REDUCE:
-		printf("%s: buf_size: %d, tflags: %d, opcode: %d, num_desc:%d\n",
+		printf("!!!ysun:%s: buf_size: %d, tflags: %d, opcode: %d, num_desc:%d\n",
 			__func__, buf_size, tflags, opcode, num_desc);
 
 		rc = test_reduce(dsa, buf_size, tflags, opcode, num_desc);
+
+		printf("!!!ysun:%s: rc: %d\n",
+			__func__, rc);
+
 		if (rc != ACCTEST_STATUS_OK)
 			goto error;
 		break;

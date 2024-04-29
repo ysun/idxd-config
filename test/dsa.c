@@ -1441,10 +1441,13 @@ int  dsa_reduce_multi_task_nodes(struct acctest_context *ctx)
 	tsk_node = ctx->multi_task_node;
 	while (tsk_node != NULL) {
 		ret = dsa_wait_reduce(ctx, tsk_node->tsk);
+		printf("!!!ysun:%s: in while rc: %d\n", __func__, ret);
 		if (ret != ACCTEST_STATUS_OK)
 			info("Desc: %p failed with ret: %d \n", tsk_node->tsk->desc, tsk_node->tsk->comp->status);
 		tsk_node = tsk_node->next;
 	}
+
+	printf("!!!ysun:%s: rc: %d\n", __func__, ret);
 
 	return ret;
 }
@@ -1640,9 +1643,12 @@ int task_result_verify(struct task *tsk, int mismatch_expected)
 
 	info("verifying task result for %#lx\n", tsk);
 
+	printf("!!!ysun: %s: status: %d\n", __func__, tsk->comp->status);
+
 	if (tsk->comp->status != DSA_COMP_SUCCESS)
 		return tsk->comp->status;
 
+	printf("!!!ysun: %s: opcode: %d\n", __func__, tsk->opcode);
 	switch (tsk->opcode) {
 	case DSA_OPCODE_MEMMOVE:
 		rc = task_result_verify_memcpy(tsk, mismatch_expected);
@@ -1692,6 +1698,7 @@ int task_result_verify(struct task *tsk, int mismatch_expected)
 			return rc;
 	case DSA_OPCODE_REDUCE:
 		rc = task_result_verify_reduce(tsk, mismatch_expected);
+		printf("!!!ysun: %s: rc: %d\n", __func__, rc);
 		return rc;
 	}
 
@@ -1837,6 +1844,7 @@ int task_result_verify_reduce(struct task *tsk, int mismatch_expected)
 		warn("invalid arg mismatch_expected for %d\n", tsk->opcode);
 
 	rc = memcmp((int *)tsk->desc->src_addr, (int *)tsk->desc->dst_addr, data_size);
+	printf("!!!ysun: %s: rc: %d\n", __func__, rc);
 	if (rc) {
 		err("reduce mismatch, compl rec status: %d\n", tsk->comp->status);
 		return -ENXIO;
