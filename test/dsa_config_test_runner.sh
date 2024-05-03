@@ -67,7 +67,7 @@ group_config_test()
 	# Traffic class is set 1 for best performance
 	# Not allow to config traffic class a and b
 
-	# group descriptor in gregress limit
+	# group descriptor in progress limit
 	if [ "$IDXD_VERSION" != "0x100" ]; then
 
 		"$ACCFG" config-group $DSA/$GRP0 -d 3 || exit 1
@@ -148,7 +148,7 @@ wq_config_test()
 	fi
 	"$ACCFG" config-wq $DSA/$WQ0 -g -1 || exit 1
 
-	# operaton config
+	# operation config
 	if [ "$IDXD_VERSION" != "0x100" ]; then
 		[ ! -f "$IDXD_DEVICE_PATH/$DSA/$WQ0/op_config" ] && exit 1
 
