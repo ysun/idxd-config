@@ -150,8 +150,6 @@ struct json_object *util_device_to_json(struct accfg_device *device,
 	uint64_t iaa_cap;
 	enum accfg_device_state dev_state;
 	int int_val;
-	uint64_t ulong_val;
-	uint64_t ullong_val;
 	bool new_bool;
 	int evls;
 
@@ -291,14 +289,6 @@ struct json_object *util_device_to_json(struct accfg_device *device,
 	if (accfg_device_get_type(device) != ACCFG_DEVICE_IAX)
 		json_object_object_add(jdevice, "max_read_buffers", jobj);
 
-	ulong_val = accfg_device_get_max_batch_size(device);
-	if (ulong_val > 0) {
-		jobj = json_object_new_int(ulong_val);
-		if (!jobj)
-			goto err;
-		json_object_object_add(jdevice, "max_batch_size", jobj);
-	}
-
 	int_val = accfg_device_get_ims_size(device);
 	if (int_val >= 0) {
 		jobj = json_object_new_int(int_val);
@@ -315,9 +305,9 @@ struct json_object *util_device_to_json(struct accfg_device *device,
 		json_object_object_add(jdevice, "max_batch_size", jobj);
 	}
 
-	ullong_val = accfg_device_get_max_transfer_size(device);
-	if (ullong_val > 0) {
-		jobj = json_object_new_int64(ullong_val);
+	int_val = accfg_device_get_max_transfer_size(device);
+	if (int_val >= 0) {
+		jobj = json_object_new_int64(int_val);
 		if (!jobj)
 			goto err;
 		json_object_object_add(jdevice, "max_transfer_size", jobj);
@@ -414,13 +404,19 @@ struct json_object *util_wq_to_json(struct accfg_wq *wq,
 	if (jobj)
 		json_object_object_add(jaccfg, "block_on_fault", jobj);
 
-	jobj = json_object_new_int(accfg_wq_get_max_batch_size(wq));
-	if (jobj)
-		json_object_object_add(jaccfg, "max_batch_size", jobj);
+	int_val = accfg_wq_get_max_batch_size(wq);
+	if (int_val >= 0) {
+		jobj = json_object_new_int(int_val);
+		if (jobj)
+			json_object_object_add(jaccfg, "max_batch_size", jobj);
+	}
 
-	jobj = json_object_new_int64(accfg_wq_get_max_transfer_size(wq));
-	if (jobj)
-		json_object_object_add(jaccfg, "max_transfer_size", jobj);
+	int_val = accfg_wq_get_max_transfer_size(wq);
+	if (int_val >= 0) {
+		jobj = json_object_new_int64(int_val);
+		if (jobj)
+			json_object_object_add(jaccfg, "max_transfer_size", jobj);
+	}
 
 	if (!(flags & UTIL_JSON_SAVE) && accfg_wq_get_cdev_minor(wq) >= 0) {
 		jobj = json_object_new_int(accfg_wq_get_cdev_minor(wq));
