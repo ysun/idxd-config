@@ -75,6 +75,7 @@ int init_dif_strp(struct task *tsk, int tflags, int opcode, unsigned long xfer_s
 int init_dif_updt(struct task *tsk, int tflags, int opcode, unsigned long xfer_size);
 int init_cflush(struct task *tsk, int tflags, int opcode, unsigned long xfer_size);
 int init_reduce(struct task *tsk, int tflags, int opcode, unsigned long xfer_size);
+int init_reduce_duel(struct task *tsk, int tflags, int opcode, unsigned long xfer_size);
 int init_task(struct task *tsk, int tflags, int opcode,
 	      unsigned long xfer_size);
 
@@ -170,6 +171,7 @@ int task_result_verify_crc_copy(struct task *tsk, int mismatch_expected);
 int task_result_verify_dif(struct task *tsk, unsigned long xfer_size, int mismatch_expected);
 int task_result_verify_dif_tags(struct task *tsk, unsigned long xfer_size);
 int task_result_verify_reduce(struct task *tsk, int mismatch_expected);
+int task_result_verify_reduce_dualcast(struct task *tsk, int mismatch_expected);
 int batch_result_verify(struct batch_task *btsk, int bof, int cp_fault);
 
 int alloc_batch_task(struct acctest_context *ctx, unsigned int task_num, int num_itr);

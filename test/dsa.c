@@ -494,6 +494,11 @@ int init_reduce(struct task *tsk, int tflags, int opcode, unsigned long xfer_siz
 		return -ENOMEM;
 	memset_pattern(tsk->dst1, tsk->pattern2, xfer_size);
 
+	tsk->dst2 = aligned_alloc(force_align, xfer_size);
+	if (!tsk->dst2)
+		return -ENOMEM;
+	memset_pattern(tsk->dst2, tsk->pattern2, xfer_size);
+
 	tsk->crc_seed = 0x12345678;
 	if (tsk->test_flags & (unsigned int)(READ_CRC_SEED)) {
 		tsk->crc_seed_addr = aligned_alloc(ADDR_ALIGNMENT, sizeof(*tsk->crc_seed_addr));
@@ -575,6 +580,7 @@ int init_task(struct task *tsk, int tflags, int opcode,
 		break;
 
 	case DSA_OPCODE_REDUCE:
+	case DSA_OPCODE_REDUCE_DUALCAST:
 		rc = init_reduce(tsk, tflags, opcode, xfer_size);
 		break;
 	}
@@ -1650,6 +1656,10 @@ int task_result_verify(struct task *tsk, int mismatch_expected)
 		rc = task_result_verify_reduce(tsk, mismatch_expected);
 		printf("!!!ysun: %s: rc: %d\n", __func__, rc);
 		return rc;
+	case DSA_OPCODE_REDUCE_DUALCAST:
+		rc = task_result_verify_reduce_dualcast(tsk, mismatch_expected);
+		printf("!!!ysun: %s: rc: %d\n", __func__, rc);
+		return rc;
 	}
 
 	if (tsk->comp->status != DSA_COMP_SUCCESS)
@@ -1860,6 +1870,31 @@ int task_result_verify_reduce(struct task *tsk, int mismatch_expected)
 	}
 	return ACCTEST_STATUS_OK;
 }
+int task_result_verify_reduce_dualcast(struct task *tsk, int mismatch_expected)
+{
+	int rc;
+
+	unsigned int data_size = (tsk->comp->status == DSA_COMP_SUCCESS) ?
+			 tsk->desc->xfer_size : tsk->comp->bytes_completed;
+
+	if (mismatch_expected)
+		warn("invalid arg mismatch_expected for %d\n", tsk->opcode);
+
+	rc = memcmp((int *)tsk->desc->src1_addr, (int *)tsk->desc->dst1_addr, data_size);
+	if (rc) {
+		err("reduce ducalcast mismatch dst1, memcmp rc %d\n", rc);
+		return -ENXIO;
+	}
+
+	rc = memcmp((int *)tsk->desc->src1_addr, (int *)tsk->desc->dst2_addr, data_size);
+	if (rc) {
+		err("reduce ducalcast mismatch dst2, memcmp rc %d\n", rc);
+		return -ENXIO;
+	}
+
+	return ACCTEST_STATUS_OK;
+}
+
 
 static uint8_t reverse_u8(uint8_t x)
 {

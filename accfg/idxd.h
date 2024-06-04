@@ -204,6 +204,7 @@ struct hw_desc {
 	uint64_t	completion_addr;
 	union {
 		uint64_t	src_addr;
+		uint64_t	src1_addr;
 		uint64_t	rdback_addr;
 		uint64_t	pattern;
 		uint64_t	desc_list_addr;
@@ -394,6 +395,19 @@ struct hw_desc {
 			uint32_t        ref_tag_seed;
 			uint16_t        app_tag_mask;
 			uint16_t        app_tag_seed;
+		};
+
+		/* DSA3.0 reduce */
+		struct {
+			uint64_t	dst1_addr;
+			uint64_t	dst2_addr;
+			uint32_t        iData:4;
+			uint32_t        oData:4;
+			uint32_t        compute_type:4;
+			uint32_t        compute_flags:12;
+			uint32_t        inter_domain_selector:8;
+			uint16_t	idpt_handle1;
+			uint16_t	idpt_handle2;
 		};
 
 		uint8_t		op_specific[24];

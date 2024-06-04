@@ -1045,6 +1045,7 @@ int main(int argc, char *argv[])
 			goto error;
 		break;
 	case DSA_OPCODE_REDUCE:
+	case DSA_OPCODE_REDUCE_DUALCAST:
 		printf("!!!ysun:%s: buf_size: %d, tflags: %d, opcode: %d, num_desc:%d\n",
 			__func__, buf_size, tflags, opcode, num_desc);
 
