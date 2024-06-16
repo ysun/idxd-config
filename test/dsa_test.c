@@ -1044,8 +1044,12 @@ int main(int argc, char *argv[])
 		if (rc != ACCTEST_STATUS_OK)
 			goto error;
 		break;
-	case DSA_OPCODE_REDUCE:
+	case DSA_OPCODE_TYPE_CONV:
 	case DSA_OPCODE_REDUCE_DUALCAST:
+	case DSA_OPCODE_GATHER_REDUCE:
+	case DSA_OPCODE_GATHER_COPY:
+	case DSA_OPCODE_SCATTER_COPY:
+	case DSA_OPCODE_SCATTER_FILL:
 		printf("!!!ysun:%s: buf_size: %d, tflags: %d, opcode: %d, num_desc:%d\n",
 			__func__, buf_size, tflags, opcode, num_desc);
 

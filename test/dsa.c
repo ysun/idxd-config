@@ -579,8 +579,13 @@ int init_task(struct task *tsk, int tflags, int opcode,
 		rc = init_cflush(tsk, tflags, opcode, xfer_size);
 		break;
 
+	case DSA_OPCODE_TYPE_CONV:
 	case DSA_OPCODE_REDUCE:
 	case DSA_OPCODE_REDUCE_DUALCAST:
+	case DSA_OPCODE_GATHER_REDUCE:
+	case DSA_OPCODE_GATHER_COPY:
+	case DSA_OPCODE_SCATTER_COPY:
+	case DSA_OPCODE_SCATTER_FILL:
 		rc = init_reduce(tsk, tflags, opcode, xfer_size);
 		break;
 	}
@@ -1652,7 +1657,12 @@ int task_result_verify(struct task *tsk, int mismatch_expected)
 	printf("!!!ysun: %s: status: %d\n", __func__, tsk->comp->status);
 
 	switch (tsk->opcode) {
+	case DSA_OPCODE_TYPE_CONV:
 	case DSA_OPCODE_REDUCE:
+	case DSA_OPCODE_GATHER_REDUCE:
+	case DSA_OPCODE_GATHER_COPY:
+	case DSA_OPCODE_SCATTER_COPY:
+	case DSA_OPCODE_SCATTER_FILL:
 		rc = task_result_verify_reduce(tsk, mismatch_expected);
 		printf("!!!ysun: %s: rc: %d\n", __func__, rc);
 		return rc;
@@ -1894,7 +1904,6 @@ int task_result_verify_reduce_dualcast(struct task *tsk, int mismatch_expected)
 
 	return ACCTEST_STATUS_OK;
 }
-
 
 static uint8_t reverse_u8(uint8_t x)
 {
