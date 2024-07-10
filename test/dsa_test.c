@@ -11,6 +11,7 @@
 #include <linux/mman.h>
 #include "accel_test.h"
 #include "dsa.h"
+#include <fcntl.h>
 
 #define DSA_TEST_SIZE 20000
 #pragma GCC diagnostic ignored "-Wformat"
@@ -395,6 +396,115 @@ static int test_dif(struct acctest_context *ctx, size_t buf_size,
 
 	return rc;
 }
+
+static int test_user_mode(struct acctest_context *ctx)
+{
+	int rc = ACCTEST_STATUS_OK;
+	struct accfg_wq *wq;
+	char path[PATH_MAX];
+	struct accfg_device *device;
+	int dev_id = -1;
+
+	struct acctest_context *dctx;
+	struct accfg_ctx *t_ctx;
+
+	dctx = malloc(sizeof(struct acctest_context));
+	if (!dctx)
+		return -EINVAL;
+	memset(dctx, 0, sizeof(struct acctest_context));
+
+	rc = accfg_new(&t_ctx);
+	if (rc < 0) {
+		free(dctx);
+		return -EINVAL;
+	}
+
+	dctx->ctx = t_ctx;
+
+	ctx = dctx;
+
+	ctx->is_batch = 0;
+
+//	wq = acctest_get_wq(ctx, -1, SHARED);
+
+	accfg_device_foreach(ctx->ctx, device) {
+		enum accfg_device_state dstate;
+
+		/* Make sure that the device is enabled */
+		dstate = accfg_device_get_state(device);
+		if (dstate != ACCFG_DEVICE_ENABLED)
+			continue;
+
+		/* Match the device to the id requested */
+		if (accfg_device_get_id(device) != dev_id &&
+		    dev_id != -1)
+			continue;
+
+		accfg_wq_foreach(device, wq) {
+			enum accfg_wq_state wstate;
+			enum accfg_wq_type type;
+
+			/* Make sure iaa_test will not use dsa wq, vice versa*/
+			if (accfg_device_get_type(device) != ctx->dev_type)
+				continue;
+
+			/* Get a workqueue that's enabled */
+			wstate = accfg_wq_get_state(wq);
+			if (wstate != ACCFG_WQ_ENABLED)
+				continue;
+
+			/* The wq type should be user */
+			type = accfg_wq_get_type(wq);
+			if (type != ACCFG_WQT_USER)
+				continue;
+
+			rc = accfg_wq_get_user_dev_path(wq, path, PATH_MAX);
+			if (rc) {
+				info("Success: Non-root: No access to WQ!\n");
+				return rc;
+			}
+
+			ctx->fd = open(path, O_RDWR);
+			if (ctx->fd < 0) {
+				info("Success: Non-root: No access to cdev!\n");
+				return 0;
+			}
+
+			ctx->wq_reg = mmap(NULL, PAGE_SIZE, PROT_WRITE,
+		      MAP_SHARED | MAP_POPULATE, ctx->fd, 0);
+			if (ctx->wq_reg == MAP_FAILED) {
+				info("Success: Non-root: No permit to mmap cdev!");
+				return 0;
+			}
+			break;
+		}
+	}
+
+	return 0;
+
+
+	rc = accfg_wq_get_user_dev_path(wq, path, PATH_MAX);
+	if (rc) {
+		info("Success: Non-root: No access to WQ!");
+		return rc;
+	}
+
+	ctx->fd = open(path, O_RDWR);
+	if (ctx->fd < 0) {
+		info("Success: Non-root: No access to cdev!");
+		return 0;
+	}
+
+	ctx->wq_reg = mmap(NULL, PAGE_SIZE, PROT_WRITE,
+			   MAP_SHARED | MAP_POPULATE, ctx->fd, 0);
+	if (ctx->wq_reg == MAP_FAILED) {
+		info("Success: Non-root: No permit to mmap cdev!");
+		return 0;
+	}
+
+	return 1;
+}
+
 
 static int test_noop(struct acctest_context *ctx, int tflags, int num_desc)
 {
@@ -919,8 +1029,9 @@ int main(int argc, char *argv[])
 	unsigned int num_desc = 1;
 	struct evl_desc_list *edl = NULL;
 	char *edl_str = NULL;
+//TODO:	int uid = getuid();
 
-	while ((opt = getopt(argc, argv, "e:w:l:f:o:b:c:d:n:t:p:vh")) != -1) {
+	while ((opt = getopt(argc, argv, "e:w:l:f:o:b:c:d:n:t:p:vuh")) != -1) {
 		switch (opt) {
 		case 'e':
 			edl_str = optarg;
@@ -960,12 +1071,19 @@ int main(int argc, char *argv[])
 		case 'v':
 			debug_logging = 1;
 			break;
+		case 'u':
+			non_root_test = 1;
+			break;
 		case 'h':
 			usage();
 			exit(0);
 		default:
 			break;
 		}
+	}
+
+	if (non_root_test) {
+		return test_user_mode(dsa);
 	}
 
 	dsa = acctest_init(tflags);

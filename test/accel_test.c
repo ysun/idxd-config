@@ -18,6 +18,7 @@
 
 unsigned int ms_timeout = 5000;
 int debug_logging;
+int non_root_test;
 static int umwait_support;
 
 static inline void cpuid(unsigned int *eax, unsigned int *ebx,
@@ -100,7 +101,7 @@ static int acctest_setup_wq(struct acctest_context *ctx, struct accfg_wq *wq)
 	return 0;
 }
 
-static struct accfg_wq *acctest_get_wq(struct acctest_context *ctx,
+struct accfg_wq *acctest_get_wq(struct acctest_context *ctx,
 				       int dev_id, int shared)
 {
 	struct accfg_device *device;

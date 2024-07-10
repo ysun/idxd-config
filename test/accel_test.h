@@ -48,6 +48,7 @@
 
 extern unsigned int ms_timeout;
 extern int debug_logging;
+extern int non_root_test;
 
 struct task {
 	struct hw_desc *desc;
@@ -293,5 +294,7 @@ void free_batch_task(struct batch_task *btsk);
 void acctest_prep_desc_common(struct hw_desc *hw, char opcode,
 			      uint64_t dest, uint64_t src, size_t len, unsigned long dflags);
 void acctest_desc_submit(struct acctest_context *ctx, struct hw_desc *hw);
+
+struct accfg_wq *acctest_get_wq(struct acctest_context *ctx, int dev_id, int shared);
 
 #endif
