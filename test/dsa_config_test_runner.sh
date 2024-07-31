@@ -152,6 +152,8 @@ wq_config_test()
 	if [ "$IDXD_VERSION" != "0x100" ]; then
 		[ ! -f "$IDXD_DEVICE_PATH/$DSA/$WQ0/op_config" ] && exit 1
 
+		op_cap="$(cat $IDXD_DEVICE_PATH/$DSA/$WQ0/op_config | cut -c 55-)"
+
 		echo 0 > "$IDXD_DEVICE_PATH/$DSA/$WQ0/op_config"
 		read_ret=$(cat $IDXD_DEVICE_PATH/$DSA/$WQ0/op_config | cut -c 55-)
 		if [ "$read_ret" != "00000000,00000000"	]; then
@@ -171,9 +173,9 @@ wq_config_test()
 			echo "config wq op_config failed" && exit "$EXIT_FAILURE"
 		fi
 
-		"$ACCFG" config-wq $DSA/$WQ0 --op-config=0000007b,00bf07ff || exit 1
+		"$ACCFG" config-wq $DSA/$WQ0 --op-config="${op_cap}" || exit 1
 		read_ret=$(cat $IDXD_DEVICE_PATH/$DSA/$WQ0/op_config | cut -c 55-)
-		if [ "$read_ret" != "0000007b,00bf07ff" ]; then
+		if [ "$read_ret" != "${op_cap}" ]; then
 			echo "config wq full operations failed" && exit "$EXIT_FAILURE"
 		fi
 

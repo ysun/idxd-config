@@ -1,3 +1,13 @@
+accel-config (4.1.8-1) unstable; urgency=medium
+
+  * [ Jerry Snitselaar ]
+  * Check for error return from iaa_do_crypto
+  * Clean up resource leak in accfg_wq_get_occupancy
+  * [ shangsong2 ]
+  * Update dsa_config_test_runner.sh
+
+ -- Ramesh Thomas <ramesh.thomas@intel.com>  Tue, 30 Jul 2024 23:19:39 -0400
+
 accel-config (4.1.7-1) unstable; urgency=medium
 
   * [ Adrian Huang ]
