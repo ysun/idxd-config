@@ -48,6 +48,7 @@
 
 extern unsigned int ms_timeout;
 extern int debug_logging;
+extern int force_enqcmd;
 
 struct task {
 	struct hw_desc *desc;

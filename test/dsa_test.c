@@ -35,6 +35,7 @@ static void usage(void)
 	"-e              ; evl pattern <batch>:<desc><..>\n"
 	"                ; <bc_fault:bc_wr_fail:bd_fault:bd_fault_idx>:<desc_fault:cp_fault:cp_wr_fail:fence>:\n"
 	"-v              ; verbose\n"
+	"-u              ; use ENQCMD to submit descriptor\n"
 	"-h              ; print this message\n");
 }
 
@@ -849,7 +850,7 @@ int main(int argc, char *argv[])
 	struct evl_desc_list *edl = NULL;
 	char *edl_str = NULL;
 
-	while ((opt = getopt(argc, argv, "e:w:l:f:o:b:c:d:n:t:p:vh")) != -1) {
+	while ((opt = getopt(argc, argv, "e:w:l:f:o:b:c:d:n:t:p:vuh")) != -1) {
 		switch (opt) {
 		case 'e':
 			edl_str = optarg;
@@ -888,6 +889,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'v':
 			debug_logging = 1;
+			break;
+		case 'u':
+			force_enqcmd = 1;
 			break;
 		case 'h':
 			usage();
