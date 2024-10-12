@@ -481,20 +481,19 @@ int init_reduce(struct task *tsk, int tflags, int opcode, unsigned long xfer_siz
 	tsk->src1 = aligned_alloc(force_align, xfer_size);
 	if (!tsk->src1)
 		return -ENOMEM;
-	memset_pattern(tsk->src1, tsk->pattern, xfer_size);
+	memset(tsk->src1, 0xff, xfer_size);
 
 	tsk->src2 = aligned_alloc(force_align, xfer_size);
 	if (!tsk->src2)
 		return -ENOMEM;
-	memset_pattern(tsk->src2, tsk->pattern2, xfer_size);
+	memset(tsk->src2, 0x11, xfer_size);
 
-
-	tsk->dst1 = aligned_alloc(force_align, xfer_size);
+	tsk->dst1 = aligned_alloc(PAGE_SIZE, xfer_size);
 	if (!tsk->dst1)
 		return -ENOMEM;
 	memset_pattern(tsk->dst1, tsk->pattern2, xfer_size);
 
-	tsk->dst2 = aligned_alloc(force_align, xfer_size);
+	tsk->dst2 = aligned_alloc(PAGE_SIZE, xfer_size);
 	if (!tsk->dst2)
 		return -ENOMEM;
 	memset_pattern(tsk->dst2, tsk->pattern2, xfer_size);
@@ -1858,7 +1857,7 @@ int task_result_verify_reduce(struct task *tsk, int mismatch_expected)
 	if (mismatch_expected)
 		warn("invalid arg mismatch_expected for %d\n", tsk->opcode);
 
-	rc = memcmp((int *)tsk->desc->src_addr, (int *)tsk->desc->dst_addr, data_size);
+	rc = memcmp((int *)tsk->desc->src1_addr, (int *)tsk->desc->dst1_addr, data_size);
 	if (rc) {
 		err("reduce mismatch, compl rec status: %d\n", tsk->comp->status);
 		return -ENXIO;

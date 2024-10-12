@@ -820,7 +820,7 @@ void dsa_prep_reduce(struct acctest_context *ctx, struct task *tsk)
 	struct hw_desc *hw = tsk->desc;
 
 	memset(hw, 0, sizeof(struct hw_desc));
-	hw->flags = 0;
+	hw->flags = 0xc;
 	hw->rsvd = 0;
 
 	hw->opcode = tsk->opcode;
