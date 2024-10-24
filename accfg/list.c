@@ -692,6 +692,11 @@ int cmd_list(int argc, const char **argv, void *ctx)
 	return 0;
 }
 
+int cmd_info(int argc, const char **argv, void *ctx)
+{
+	printf("ysun: test!!!\n");
+	return 0;
+}
 int cmd_save(int argc, const char **argv, void *ctx)
 {
 	const struct option options[] = {
