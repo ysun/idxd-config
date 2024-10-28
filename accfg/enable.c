@@ -30,6 +30,12 @@ enum wq_action {
 	WQ_ACTION_DISABLE,
 };
 
+enum dev_param {
+	DEV_PARAM_DSA = 1,
+	DEV_PARAM_IAX = 2,
+	DEV_PARAM_ALL = 3,
+};
+
 static struct {
 	bool verbose;
 	bool force;
@@ -91,6 +97,8 @@ static int device_action(int argc, const char **argv, const char *usage,
 	};
 	int i, rc = -EINVAL, success = 0;
 	enum accfg_device_state state;
+	struct accfg_device *device = NULL;
+	unsigned int bmap_dev = 0;
 
 	argc = parse_options(argc, argv, options, u, 0);
 
@@ -101,13 +109,44 @@ static int device_action(int argc, const char **argv, const char *usage,
 		if (strcmp(argv[i], "all") == 0) {
 			argv[0] = "all";
 			argc = 1;
+			bmap_dev |= DEV_PARAM_ALL;
+			break;
+		}
+		if (strcmp(argv[i], "dsa") == 0) {
+			argv[0] = "dsa";
+			argc = 1;
+			bmap_dev |= DEV_PARAM_DSA;
+			break;
+		}
+		if (strcmp(argv[i], "iax") == 0) {
+			argv[0] = "iax";
+			argc = 1;
+			bmap_dev |= DEV_PARAM_IAX;
 			break;
 		}
 	}
 
-	for (i = 0; i < argc; i++) {
-		struct accfg_device *device;
+	if (bmap_dev) {
+		accfg_device_foreach(ctx, device) {
+			if (strstr(accfg_device_get_devname(device), "iax") &&
+				(bmap_dev & DEV_PARAM_IAX) == 0)
+				continue;
+			if (strstr(accfg_device_get_devname(device), "dsa") &&
+				(bmap_dev & DEV_PARAM_DSA) == 0)
+				continue;
 
+			rc = dev_action_switch(device, action);
+			if (rc == 0) {
+				success++;
+				fprintf(stderr, "%s %d device(s) %s\n",
+					action == DEV_ACTION_ENABLE ? "enabled" : "disabled",
+					success, accfg_device_get_devname(device));
+			}
+		}
+		return 0;
+	}
+
+	for (i = 0; i < argc; i++) {
 		if (parse_device_name(ctx, argv[i], &device)) {
 			if (param.verbose)
 				fprintf(stderr,
