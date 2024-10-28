@@ -285,7 +285,13 @@ static int wq_action(int argc, const char **argv, const char *usage,
 int cmd_disable_device(int argc, const char **argv, void *ctx)
 {
 	char *usage =
-	    "accel-config disable-device <accel_basename0> [<accel_basename1>..<accel_basenameN>] [<options>]";
+	    "\naccel-config disable-device <accel_basename0> [<accel_basename1>..<accel_basenameN>] [<options>]\n"
+	    "accel-config disable-device <device type>\n"
+	    "    device_type: can be one of following values\n"
+	    "        dsa: disable all DSA devices\n"
+	    "        iax: disable all IAX devices\n"
+	    "        all: disable all devices\n";
+
 	int count = device_action(argc, argv, usage, device_disable_options,
 				  DEV_ACTION_DISABLE, ctx);
 	return count >= 0 ? 0 : EXIT_FAILURE;
@@ -294,7 +300,13 @@ int cmd_disable_device(int argc, const char **argv, void *ctx)
 int cmd_enable_device(int argc, const char **argv, void *ctx)
 {
 	char *usage =
-	    "accel-config enable-device <accel_basename0> [<accel_basename1>..<accel_basenameN>] [<options>]";
+	    "\naccel-config enable-device <accel_basename0> [<accel_basename1>..<accel_basenameN>] [<options>]\n"
+	    "accel-config enable-device <device type>\n"
+	    "    device_type: can be one of following values\n"
+	    "        dsa: enable all configured DSA devices\n"
+	    "        iax: enable all configured IAX devices\n"
+	    "        all: enable all configured devices\n";
+
 	int count = device_action(argc, argv, usage, device_options,
 				  DEV_ACTION_ENABLE, ctx);
 	return count >= 0 ? 0 : EXIT_FAILURE;

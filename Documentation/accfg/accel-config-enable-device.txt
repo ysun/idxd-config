@@ -11,10 +11,15 @@ SYNOPSIS
 --------
 [verse]
 'accel-config enable-device' <device>
+'accel-config enable-device' <device-type>
+	dsa: enable all configured DSA devices
+	iax: enable all configured IAX devices
+	all: enable all configured devices
 
 EXAMPLE
 -------
 accel-config enable-device dsa0
+accel-config enable-device all
 
 include::../copyright.txt[]
 
