@@ -11,10 +11,15 @@ SYNOPSIS
 --------
 [verse]
 'accel-config disable-device' <device>
+'accel-config disable-device' <device-type>
+	dsa: disable all DSA devices
+	iax: disable all IAX devices
+	all: disable all devices
 
 EXAMPLE
 -------
 accel-config disable-device dsa0
+accel-config disable-device all
 
 OPTIONS
 -------
