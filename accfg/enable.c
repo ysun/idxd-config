@@ -104,11 +104,27 @@ static int device_action(int argc, const char **argv, const char *usage,
 			argc = 1;
 			break;
 		}
+		if (strcmp(argv[i], "dsa") == 0) {
+			argv[0] = "dsa";
+			argc = 1;
+			break;
+		}
+		if (strcmp(argv[i], "iax") == 0) {
+			argv[0] = "iax";
+			argc = 1;
+			break;
+		}
 	}
 
-	if(strcmp(argv[0], "all") == 0) {
+	if (strcmp(argv[0], "all") == 0 ||
+	    strcmp(argv[0], "dsa") == 0 ||
+	    strcmp(argv[0], "iax") == 0) {
 		accfg_device_foreach(ctx, device) {
 			if (!accfg_device_is_active(device))
+				continue;
+
+			if (!strstr(accfg_device_get_devname(device), argv[0])
+			    && !strcmp(argv[0], "all"))
 				continue;
 
 			rc = dev_action_switch(device, action);
