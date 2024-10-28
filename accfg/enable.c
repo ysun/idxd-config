@@ -92,6 +92,7 @@ static int device_action(int argc, const char **argv, const char *usage,
 	int i, rc = -EINVAL, success = 0;
 	enum accfg_device_state state;
 	struct accfg_device *device = NULL;
+	unsigned int bmap_dev = 0;
 
 	argc = parse_options(argc, argv, options, u, 0);
 
@@ -102,29 +103,33 @@ static int device_action(int argc, const char **argv, const char *usage,
 		if (strcmp(argv[i], "all") == 0) {
 			argv[0] = "all";
 			argc = 1;
+			bmap_dev |= 0x3;
 			break;
 		}
 		if (strcmp(argv[i], "dsa") == 0) {
 			argv[0] = "dsa";
 			argc = 1;
+			bmap_dev |= 0x1;
 			break;
 		}
 		if (strcmp(argv[i], "iax") == 0) {
 			argv[0] = "iax";
 			argc = 1;
+			bmap_dev |= 0x2;
 			break;
 		}
 	}
 
-	if (strcmp(argv[0], "all") == 0 ||
-	    strcmp(argv[0], "dsa") == 0 ||
-	    strcmp(argv[0], "iax") == 0) {
+	if (bmap_dev) {
 		accfg_device_foreach(ctx, device) {
 			if (!accfg_device_is_active(device))
 				continue;
 
-			if (!strstr(accfg_device_get_devname(device), argv[0])
-			    && !strcmp(argv[0], "all"))
+			if (strstr(accfg_device_get_devname(device), "iax") &&
+				(bmap_dev & 0x2) == 0)
+				continue;
+			if (strstr(accfg_device_get_devname(device), "dsa") &&
+				(bmap_dev & 0x1) == 0)
 				continue;
 
 			rc = dev_action_switch(device, action);
@@ -139,7 +144,7 @@ static int device_action(int argc, const char **argv, const char *usage,
 			if (rc == 0) {
 				success++;
 				fprintf(stderr, "disable %d device(s) %s\n",
-					success, device->device_path);
+					success, accfg_device_get_devname(device));
 			}
 		}
 		return 0;
