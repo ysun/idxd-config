@@ -694,8 +694,15 @@ int cmd_list(int argc, const char **argv, void *ctx)
 
 int cmd_info(int argc, const char **argv, void *ctx)
 {
+	int rc;
+	struct accfg_op_config op_config;
+	struct accfg_op_cap op_cap;
+	struct accfg_device *device;
+
+	rc = accfg_device_get_op_cap(device, &op_cap);
 	printf("ysun: test!!!\n");
-	return 0;
+
+	return rc;
 }
 int cmd_save(int argc, const char **argv, void *ctx)
 {

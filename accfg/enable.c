@@ -91,6 +91,7 @@ static int device_action(int argc, const char **argv, const char *usage,
 	};
 	int i, rc = -EINVAL, success = 0;
 	enum accfg_device_state state;
+	struct accfg_device *device = NULL;
 
 	argc = parse_options(argc, argv, options, u, 0);
 
@@ -105,9 +106,30 @@ static int device_action(int argc, const char **argv, const char *usage,
 		}
 	}
 
-	for (i = 0; i < argc; i++) {
-		struct accfg_device *device;
+	if(strcmp(argv[0], "all") == 0) {
+		accfg_device_foreach(ctx, device) {
+			if (!accfg_device_is_active(device))
+				continue;
 
+			rc = dev_action_switch(device, action);
+			if (rc == 0) {
+				state = accfg_device_get_state(device);
+				if (((state != ACCFG_DEVICE_ENABLED) &&
+					(action == DEV_ACTION_ENABLE)) ||
+					((state != ACCFG_DEVICE_DISABLED) &&
+					(action == DEV_ACTION_DISABLE)))
+				rc = ENXIO;
+			}
+			if (rc == 0) {
+				success++;
+				fprintf(stderr, "disable %d device(s) %s\n",
+					success, device->device_path);
+			}
+		}
+		return 0;
+	}
+
+	for (i = 0; i < argc; i++) {
 		if (parse_device_name(ctx, argv[i], &device)) {
 			if (param.verbose)
 				fprintf(stderr,
