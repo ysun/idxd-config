@@ -19,6 +19,7 @@ struct cmd_struct {
 	int (*fn) (int, const char **, void *ctx);
 };
 int cmd_list(int argc, const char **argv, void *ctx);
+int cmd_info(int argc, const char **argv, void *ctx);
 int cmd_config(int argc, const char **argv, void *ctx);
 int cmd_save(int argc, const char **argv, void *ctx);
 int cmd_disable_device(int argc, const char **argv, void *ctx);
