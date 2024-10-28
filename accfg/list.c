@@ -694,15 +694,23 @@ int cmd_list(int argc, const char **argv, void *ctx)
 
 int cmd_info(int argc, const char **argv, void *ctx)
 {
-	int rc;
-	struct accfg_op_config op_config;
-	struct accfg_op_cap op_cap;
+	struct accfg_op_config;
+	struct accfg_op_cap;
 	struct accfg_device *device;
 
-	rc = accfg_device_get_op_cap(device, &op_cap);
-	printf("ysun: test!!!\n");
+	//rc = accfg_device_get_op_cap(device, &op_cap);
+	accfg_device_foreach(ctx, device) {
+		if (accfg_device_is_active(device)) {
+			fprintf(stdout, "%s (Active!)\n",
+				accfg_device_get_devname(device));
 
-	return rc;
+		} else {
+			fprintf(stdout, "%s\n",
+				accfg_device_get_devname(device));
+		}
+	}
+
+	return 0;
 }
 int cmd_save(int argc, const char **argv, void *ctx)
 {
