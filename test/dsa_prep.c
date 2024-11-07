@@ -832,11 +832,9 @@ void dsa_prep_reduce(struct acctest_context *ctx, struct task *tsk)
 	hw->src2_addr = (uint64_t)tsk->src2;
 
 	hw->dst1_addr = (uint64_t)tsk->dst1;
-	memset(tsk->dst1, 0, tsk->xfer_size);
 
 	if(tsk->opcode == DSA_OPCODE_REDUCE_DUALCAST) {
 		hw->dst2_addr = (uint64_t)tsk->dst2;
-		memset(tsk->dst2, 0, tsk->xfer_size);
 	}
 
 	hw->iData = 0;		//0: uint8; 1: uint16; 2: uint32; 3: uint64
