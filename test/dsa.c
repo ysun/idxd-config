@@ -1443,6 +1443,14 @@ int  dsa_reduce_multi_task_nodes(struct acctest_context *ctx)
 
 	tsk_node = ctx->multi_task_node;
 	while (tsk_node != NULL) {
+		dbg("src1: 0x%016lx, src2: 0x%016lx\n",
+			*((uint64_t *)tsk_node->tsk->src1),
+			*((uint64_t *)tsk_node->tsk->src2));
+
+		dbg("dst1: 0x%016lx, dst2: 0x%016lx\n",
+			*((uint64_t *)tsk_node->tsk->dst1),
+			*((uint64_t *)tsk_node->tsk->dst2));
+
 		acctest_desc_submit(ctx, tsk_node->tsk->desc);
 		tsk_node = tsk_node->next;
 	}
@@ -1857,6 +1865,11 @@ int task_result_verify_reduce(struct task *tsk, int mismatch_expected)
 	if (mismatch_expected)
 		warn("invalid arg mismatch_expected for %d\n", tsk->opcode);
 
+	dbg("src1: 0x%016lx, src2: 0x%016lx\n",
+		*((uint64_t *)tsk->src1), *((uint64_t *)tsk->src2));
+	dbg("dst1: 0x%016lx, dst2: 0x%016lx\n",
+		*((uint64_t *)tsk->dst1), *((uint64_t *)tsk->dst2));
+
 	rc = memcmp((int *)tsk->desc->src1_addr, (int *)tsk->desc->dst1_addr, data_size);
 	if (rc) {
 		err("reduce mismatch, compl rec status: %d\n", tsk->comp->status);
@@ -1873,6 +1886,11 @@ int task_result_verify_reduce_dualcast(struct task *tsk, int mismatch_expected)
 
 	if (mismatch_expected)
 		warn("invalid arg mismatch_expected for %d\n", tsk->opcode);
+
+	dbg("src1: 0x%016lx, src2: 0x%016lx\n",
+		*((uint64_t *)tsk->src1), *((uint64_t *)tsk->src2));
+	dbg("dst1: 0x%016lx, dst2: 0x%016lx\n",
+		*((uint64_t *)tsk->dst1), *((uint64_t *)tsk->dst2));
 
 	rc = memcmp((int *)tsk->desc->src1_addr, (int *)tsk->desc->dst1_addr, data_size);
 	if (rc) {
