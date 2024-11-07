@@ -498,13 +498,6 @@ int init_reduce(struct task *tsk, int tflags, int opcode, unsigned long xfer_siz
 		return -ENOMEM;
 	memset_pattern(tsk->dst2, tsk->pattern2, xfer_size);
 
-	tsk->crc_seed = 0x12345678;
-	if (tsk->test_flags & (unsigned int)(READ_CRC_SEED)) {
-		tsk->crc_seed_addr = aligned_alloc(ADDR_ALIGNMENT, sizeof(*tsk->crc_seed_addr));
-		*tsk->crc_seed_addr = tsk->crc_seed;
-		tsk->crc_seed = 0x0;
-	}
-
 	return ACCTEST_STATUS_OK;
 }
 
