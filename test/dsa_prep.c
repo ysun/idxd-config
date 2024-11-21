@@ -852,3 +852,34 @@ void dsa_prep_reduce(struct acctest_context *ctx, struct task *tsk)
 
 	info("tsk->dflags:%x\n", tsk->dflags);
 }
+
+void dsa_prep_type_conv(struct acctest_context *ctx, struct task *tsk)
+{
+	struct hw_desc *hw = tsk->desc;
+
+	memset(hw, 0, sizeof(struct hw_desc));
+	hw->flags = 0xc;
+	hw->rsvd = 0;
+
+	hw->opcode = tsk->opcode;
+	hw->xfer_size = tsk->xfer_size;
+
+	hw->rsvd1 = 0;
+
+	hw->src_addr = (uint64_t)tsk->src1;
+	hw->dst_addr = (uint64_t)tsk->dst1;
+
+	hw->iData = 0;		//0: uint8; 1: uint16; 2: uint32; 3: uint64
+	hw->oData = 0;		// 4: FP8_E5M2; 5: FP8_E4M3; 6: FP16; 7: BF16; 8: FP32; 9: FP64
+	hw->compute_flags = 0;	//0: No flags
+	hw->compute_type = 0;	//1: Add; 3: And; 4: Or; 5: Xor; 6: Min; 7: Max
+	hw->xfer_size = tsk->xfer_size;
+
+	info("preparing descriptor for reduce\n");
+
+	hw->completion_addr = (uint64_t)(tsk->comp);
+	tsk->comp->status = 0;
+	tsk->desc->completion_addr = (uint64_t)(tsk->comp);
+
+	info("tsk->dflags:%x\n", tsk->dflags);
+}
