@@ -501,6 +501,29 @@ int init_reduce(struct task *tsk, int tflags, int opcode, unsigned long xfer_siz
 	return ACCTEST_STATUS_OK;
 }
 
+int init_type_conv(struct task *tsk, int tflags, int opcode, unsigned long xfer_size)
+{
+	unsigned long force_align = ADDR_ALIGNMENT;
+
+	tsk->pattern = 0x0123456789abcdef;
+	tsk->pattern2 = 0xfedcba9876543210;
+	tsk->opcode = opcode;
+	tsk->test_flags = tflags;
+	tsk->xfer_size = xfer_size;
+
+	tsk->src1 = aligned_alloc(force_align, xfer_size);
+	if (!tsk->src1)
+		return -ENOMEM;
+	memset(tsk->src1, 0xff, xfer_size);
+
+	tsk->dst1 = aligned_alloc(PAGE_SIZE, xfer_size);
+	if (!tsk->dst1)
+		return -ENOMEM;
+	memset_pattern(tsk->dst1, tsk->pattern2, xfer_size);
+
+	return ACCTEST_STATUS_OK;
+}
+
 
 /* this function is re-used by batch task */
 int init_task(struct task *tsk, int tflags, int opcode,
@@ -571,14 +594,16 @@ int init_task(struct task *tsk, int tflags, int opcode,
 		rc = init_cflush(tsk, tflags, opcode, xfer_size);
 		break;
 
-	case DSA_OPCODE_TYPE_CONV:
 	case DSA_OPCODE_REDUCE:
 	case DSA_OPCODE_REDUCE_DUALCAST:
-	case DSA_OPCODE_GATHER_REDUCE:
-	case DSA_OPCODE_GATHER_COPY:
-	case DSA_OPCODE_SCATTER_COPY:
-	case DSA_OPCODE_SCATTER_FILL:
+//	case DSA_OPCODE_GATHER_REDUCE:
+//	case DSA_OPCODE_GATHER_COPY:
+//	case DSA_OPCODE_SCATTER_COPY:
+//	case DSA_OPCODE_SCATTER_FILL:
 		rc = init_reduce(tsk, tflags, opcode, xfer_size);
+		break;
+	case DSA_OPCODE_TYPE_CONV:
+		rc = init_type_conv(tsk, tflags, opcode, xfer_size);
 		break;
 	}
 
@@ -1460,6 +1485,69 @@ int  dsa_reduce_multi_task_nodes(struct acctest_context *ctx)
 	return ret;
 }
 
+int dsa_wait_type_conv(struct acctest_context *ctx, struct task *tsk)
+{
+	struct hw_desc *desc = tsk->desc;
+	struct completion_record *comp = tsk->comp;
+
+	int rc;
+
+again:
+	rc = acctest_wait_on_desc_timeout(comp, ctx, ms_timeout);
+	if (rc < 0) {
+		err("type conversion desc timeout\n");
+		return ACCTEST_STATUS_OK;
+	}
+
+	/* re-submit if PAGE_FAULT reported by HW && BOF is off */
+	if (stat_val(comp->status) == DSA_COMP_PAGE_FAULT_NOBOF &&
+		!(desc->flags & IDXD_OP_FLAG_BOF)) {
+		task_result_verify_type_conv(tsk, 0);
+		goto again;
+	}
+
+	return ACCTEST_STATUS_OK;
+}
+
+int  dsa_type_conv_multi_task_nodes(struct acctest_context *ctx)
+{
+	struct task_node *tsk_node = ctx->multi_task_node;
+	int ret = ACCTEST_STATUS_OK;
+
+	while (tsk_node) {
+		tsk_node->tsk->dflags = IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_RCR;
+		if ((tsk_node->tsk->test_flags & TEST_FLAGS_BOF) && ctx->bof)
+			tsk_node->tsk->dflags |= IDXD_OP_FLAG_BOF;
+
+		dsa_prep_type_conv(ctx, tsk_node->tsk);
+		tsk_node = tsk_node->next;
+	}
+
+	tsk_node = ctx->multi_task_node;
+	while (tsk_node != NULL) {
+		dbg("src: 0x%016lx\n",
+			*((uint64_t *)tsk_node->tsk->src1));
+
+		dbg("dst: 0x%016lx\n",
+			*((uint64_t *)tsk_node->tsk->dst1));
+
+		acctest_desc_submit(ctx, tsk_node->tsk->desc);
+		tsk_node = tsk_node->next;
+	}
+	info("Submitted all type conversion jobs\n");
+
+	tsk_node = ctx->multi_task_node;
+	while (tsk_node != NULL) {
+		ret = dsa_wait_type_conv(ctx, tsk_node->tsk);
+		if (ret != ACCTEST_STATUS_OK)
+			info("Desc: %p failed with ret: %d \n", tsk_node->tsk->desc, tsk_node->tsk->comp->status);
+		tsk_node = tsk_node->next;
+	}
+
+	return ret;
+}
+
+
 int dsa_dif_check_multi_task_nodes(struct acctest_context *ctx)
 {
 	struct task_node *tsk_node = ctx->multi_task_node;
@@ -1653,11 +1741,14 @@ int task_result_verify(struct task *tsk, int mismatch_expected)
 
 	switch (tsk->opcode) {
 	case DSA_OPCODE_TYPE_CONV:
+		rc = task_result_verify_type_conv(tsk, mismatch_expected);
+		break;
+//	case DSA_OPCODE_GATHER_REDUCE:
+//	case DSA_OPCODE_GATHER_COPY:
+//	case DSA_OPCODE_SCATTER_COPY:
+//	case DSA_OPCODE_SCATTER_FILL:
+
 	case DSA_OPCODE_REDUCE:
-	case DSA_OPCODE_GATHER_REDUCE:
-	case DSA_OPCODE_GATHER_COPY:
-	case DSA_OPCODE_SCATTER_COPY:
-	case DSA_OPCODE_SCATTER_FILL:
 		rc = task_result_verify_reduce(tsk, mismatch_expected);
 		return rc;
 	case DSA_OPCODE_REDUCE_DUALCAST:
@@ -1894,6 +1985,27 @@ int task_result_verify_reduce_dualcast(struct task *tsk, int mismatch_expected)
 	rc = memcmp((int *)tsk->desc->src1_addr, (int *)tsk->desc->dst2_addr, data_size);
 	if (rc) {
 		err("reduce ducalcast mismatch dst2, memcmp rc %d\n", rc);
+		return -ENXIO;
+	}
+
+	return ACCTEST_STATUS_OK;
+}
+int task_result_verify_type_conv(struct task *tsk, int mismatch_expected)
+{
+	int rc;
+
+	unsigned int data_size = (tsk->comp->status == DSA_COMP_SUCCESS) ?
+			 tsk->desc->xfer_size : tsk->comp->bytes_completed;
+
+	if (mismatch_expected)
+		warn("invalid arg mismatch_expected for %d\n", tsk->opcode);
+
+	dbg("verify src1: 0x%016lx\n", *((uint64_t *)tsk->desc->src_addr));
+	dbg("verify dst1: 0x%016lx\n", *((uint64_t *)tsk->desc->dst_addr));
+
+	rc = memcmp((int *)tsk->desc->src_addr, (int *)tsk->desc->dst_addr, data_size);
+	if (rc) {
+		err("type conversion mismatch dst, memcmp rc %d\n", rc);
 		return -ENXIO;
 	}
 
