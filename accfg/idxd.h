@@ -210,6 +210,7 @@ struct hw_desc {
 		uint64_t	desc_list_addr;
 		uint64_t	win_base_addr;
 		uint64_t	transl_fetch_addr;
+		uint64_t	scatter_gather_addr;
 	};
 	union {
 		uint64_t	dst_addr;
@@ -222,6 +223,7 @@ struct hw_desc {
 		uint32_t	xfer_size;
 		uint32_t	desc_count;
 		uint32_t	region_size;
+		uint32_t	element_count;
 	};
 	uint16_t	int_handle;
 	union {
@@ -397,20 +399,53 @@ struct hw_desc {
 			uint16_t        app_tag_seed;
 		};
 
-		/* DSA3.0 reduce */
 		struct {
-			uint64_t	dst1_addr;
-			uint64_t	dst2_addr;
+			union {
+				/* DSA3.0 reduce */
+				struct {
+					uint64_t	dst1_addr;
+					uint64_t	dst2_addr;
+				};
+
+				/* DSA3.0 Type conversion*/
+				struct {
+					uint64_t	rsvd40;
+					uint64_t	rsvd48;
+				};
+				/* Gather Reduce */
+				struct {
+					uint32_t	rsvd40_2;
+					uint16_t	sgl_size;
+					uint16_t	resvd46;
+					uint64_t	base_addr;
+				};
+			};
 			uint32_t        iData:4;
 			uint32_t        oData:4;
 			uint32_t        compute_type:4;
 			uint32_t        compute_flags:12;
-			uint32_t        inter_domain_selector:8;
-			uint16_t	idpt_handle1;
-			uint16_t	idpt_handle2;
+			union {
+				/* reduce */
+				struct {
+					uint32_t        inter_domain_selector:8;
+					uint16_t	idpt_handle1;
+					uint16_t	idpt_handle2;
+				};
+				/* Type Conversion */
+				struct {
+					uint8_t		rsvd59;
+					uint16_t	idpt_src;
+					uint16_t	idpt_dst;
+				};
+				/* Gather Reduce */
+				struct {
+					uint8_t		rsvd59_1:4;
+					uint8_t		sgl_fmt:4;
+					uint32_t	rsvd60;
+				};
+			};
+			uint8_t		op_specific[24];
 		};
-
-		uint8_t		op_specific[24];
 	};
 } __attribute__((packed));
 
