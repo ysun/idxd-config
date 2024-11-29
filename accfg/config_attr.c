@@ -25,6 +25,7 @@
 static struct dev_parameters dev_param = {
 	.read_buffer_limit = UINT_MAX,
 	.event_log_size = INT_MAX,
+	.durable_wr_opt_out = INT_MAX,
 };
 
 static struct group_parameters group_param = {
@@ -75,6 +76,13 @@ static int accel_config_parse_device_attribs(struct accfg_device *dev,
 	if (device_param->event_log_size != INT_MAX) {
 		rc = accfg_device_set_event_log_size(dev,
 				device_param->event_log_size);
+		if (rc < 0)
+			return rc;
+	}
+
+	if (device_param->durable_wr_opt_out != INT_MAX) {
+		rc = accfg_device_set_durable_wr_opt_out(dev,
+				device_param->durable_wr_opt_out);
 		if (rc < 0)
 			return rc;
 	}
@@ -405,6 +413,8 @@ int cmd_config_device(int argc, const char **argv, void *ctx)
 			     "specify read buffer limit by device"),
 		OPT_INTEGER('e', "event-log-size", &dev_param.event_log_size,
 			     "specify event log size for device"),
+		OPT_INTEGER('d', "durable-wr", &dev_param.durable_wr_opt_out,
+			     "specify durable_wr_opt_out for device"),
 		OPT_END(),
 	};
 
