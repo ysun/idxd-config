@@ -584,6 +584,8 @@ static void *add_device(void *parent, int id, const char *ctl_base,
 	device->event_log_size = accfg_get_param_long(ctx, dfd, "event_log_size");
 	device->cdev_major = accfg_get_param_long(ctx, dfd, "cdev_major");
 	device->version = accfg_get_param_unsigned_llong(ctx, dfd, "version");
+	device->durable_wr_opt_out = accfg_get_param_long(ctx, dfd,
+			"durable_wr_opt_out");
 	device->device_path = realpath(ctl_base, NULL);
 	close(dfd);
 	if (!device->device_path) {
@@ -1254,6 +1256,12 @@ ACCFG_EXPORT unsigned int accfg_device_get_version(
 		struct accfg_device *device)
 {
 	return device->version;
+}
+
+ACCFG_EXPORT int accfg_device_get_durable_wr_opt_out(
+		struct accfg_device *device)
+{
+	return device->durable_wr_opt_out;
 }
 
 ACCFG_EXPORT int accfg_device_get_clients(struct accfg_device *device)
