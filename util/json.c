@@ -188,6 +188,14 @@ struct json_object *util_device_to_json(struct accfg_device *device,
 		json_object_object_add(jdevice, "event_log_size", jobj);
 	}
 
+	int_val = accfg_device_get_durable_wr_opt_out(device);
+	if (int_val >= 0) {
+		jobj = json_object_new_int(int_val);
+		if (!jobj)
+			goto err;
+		json_object_object_add(jdevice, "durable_wr_opt_out", jobj);
+	}
+
 	if (flags & UTIL_JSON_SAVE) {
 		free(error);
 		return jdevice;
