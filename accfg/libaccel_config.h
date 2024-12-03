@@ -211,6 +211,7 @@ int accfg_device_get_event_log_size(struct accfg_device *device);
 int accfg_device_set_event_log_size(struct accfg_device *dev, int val);
 int accfg_device_is_active(struct accfg_device *device);
 int accfg_device_get_durable_wr_opt_out(struct accfg_device *device);
+int accfg_device_set_durable_wr_opt_out(struct accfg_device *dev, int val);
 unsigned int accfg_device_get_cmd_status(struct accfg_device *device);
 const char *accfg_device_get_cmd_status_str(struct accfg_device *device);
 unsigned int accfg_ctx_get_last_error(struct accfg_ctx *ctx);
