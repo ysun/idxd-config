@@ -188,10 +188,25 @@ struct json_object *util_device_to_json(struct accfg_device *device,
 		json_object_object_add(jdevice, "event_log_size", jobj);
 	}
 
+	fprintf(stdout, "ysun1: before accfg_device_get_durable_wr_opt_out\n");
+
+	int_val = accfg_device_get_durable_wr_opt_out(device);
+	if (int_val >= 0) {
+		jobj = json_object_new_int(int_val);
+		if (!jobj)
+			goto err;
+		json_object_object_add(jdevice, "durable_wr_opt_out", jobj);
+		fprintf(stdout, "ysun2: in accfg_device_get_durable_wr_opt_out\n");
+	}
+	fprintf(stdout, "ysun3: after accfg_device_get_durable_wr_opt_out\n");
+
+	fprintf(stdout, "ysun: before flags(%x) & UTIL_JSON_SAVE(%x)\n",
+		flags, UTIL_JSON_SAVE);
 	if (flags & UTIL_JSON_SAVE) {
 		free(error);
 		return jdevice;
 	}
+	fprintf(stdout, "ysun: after flags&UTIL_JSON_SAVE\n");
 
 	int_val = accfg_device_get_max_groups(device);
 	if (int_val >= 0) {
@@ -223,14 +238,6 @@ struct json_object *util_device_to_json(struct accfg_device *device,
 		if (!jobj)
 			goto err;
 		json_object_object_add(jdevice, "work_queue_size", jobj);
-	}
-
-	int_val = accfg_device_get_durable_wr_opt_out(device);
-	if (int_val >= 0) {
-		jobj = json_object_new_int(int_val);
-		if (!jobj)
-			goto err;
-		json_object_object_add(jdevice, "durable_wr_opt_out", jobj);
 	}
 
 	jobj = json_object_new_int(accfg_device_get_numa_node(device));

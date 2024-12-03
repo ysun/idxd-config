@@ -309,6 +309,7 @@ static bool filter_device(struct accfg_device *device,
 
 	max_groups = accfg_device_get_max_groups(device);
 
+	fprintf(stdout, "ysun: before util_device_to_json\n");
 	lfa->jdevice = util_device_to_json(device, lfa->flags);
 	if (!lfa->jdevice)
 		return false;
@@ -380,6 +381,7 @@ static int save_config(struct list_filter_arg *lfa, const char *saved_file)
 				saved_file, strerror(errno));
 		return -EIO;
 	}
+	fprintf(stdout, "ysun: open %s for save!\n", saved_file);
 
 	if (jdevices)
 		util_display_json_array(fd, jdevices, lfa->flags);
@@ -728,7 +730,9 @@ int cmd_save(int argc, const char **argv, void *ctx)
 	fctx.list = &lfa;
 	lfa.flags = listopts_to_flags();
 
+	fprintf(stdout, "ysun: before util_filter_walk\n");
 	rc = util_filter_walk(ctx, &fctx, &util_param);
+	fprintf(stdout, "ysun: after util_filter_walk (%d)\n", rc);
 	if (rc)
 		return rc;
 

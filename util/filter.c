@@ -222,10 +222,12 @@ int util_filter_walk(struct accfg_ctx *ctx, struct util_filter_ctx *fctx,
 	if (rc)
 		return rc;
 
+	fprintf(stdout, "ysun: before accfg_device_foreach\n");
 	accfg_device_foreach(ctx, device) {
 		if (dev && dev != device)
 			continue;
 
+		fprintf(stdout, "ysun: before filter_device\n");
 		if (!fctx->filter_device(device, fctx))
 			continue;
 
