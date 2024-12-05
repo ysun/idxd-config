@@ -1,5 +1,5 @@
-/* SPDX-License-Identifier: GPL-2.0 */
-/* Copyright(c) 2015-2019 Intel Corporation. All rights reserved. */
+/* SPDX-License-Identifier: LGPL-2.1 */
+/* Copyright(c) 2016-2025 Intel Corporation. All rights reserved. */
 
 #ifndef __UTIL_LOG_H__
 #define __UTIL_LOG_H__
