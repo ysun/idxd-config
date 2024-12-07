@@ -18,6 +18,7 @@
 
 unsigned int ms_timeout = 5000;
 int debug_logging;
+int force_enqcmd = 0;
 static int umwait_support;
 
 static inline void cpuid(unsigned int *eax, unsigned int *ebx,
@@ -90,11 +91,13 @@ static int acctest_setup_wq(struct acctest_context *ctx, struct accfg_wq *wq)
 		return -errno;
 	}
 
-	ctx->wq_reg = mmap(NULL, PAGE_SIZE, PROT_WRITE,
-			   MAP_SHARED | MAP_POPULATE, ctx->fd, 0);
-	if (ctx->wq_reg == MAP_FAILED) {
-		perror("mmap");
-		return -errno;
+	if (force_enqcmd) {
+		ctx->wq_reg = mmap(NULL, PAGE_SIZE, PROT_WRITE,
+		     MAP_SHARED | MAP_POPULATE, ctx->fd, 0);
+		if (ctx->wq_reg == MAP_FAILED) {
+			perror("mmap");
+			return -errno;
+		}
 	}
 
 	return 0;
@@ -295,14 +298,22 @@ struct task *acctest_alloc_task(struct acctest_context *ctx)
 	return tsk;
 }
 
-static int acctest_enqcmd(struct acctest_context *ctx, struct hw_desc *hw)
+static int acctest_desc_submit_swq(struct acctest_context *ctx, struct hw_desc *hw)
 {
 	int retry_count = 0;
 	int ret = 0;
 
 	while (retry_count < 3) {
-		if (!enqcmd(ctx->wq_reg, hw))
-			break;
+		if (force_enqcmd) {
+			info("Submitting descriptor via ENQCMD\n");
+			if (!enqcmd(ctx->wq_reg, hw))
+				break;
+		} else {
+			info("Submitting descriptor via syscall write\n");
+			ret = write(ctx->fd, hw, sizeof(struct hw_desc));
+			if (ret == sizeof(struct hw_desc))
+				break;
+		}
 
 		info("retry\n");
 		retry_count++;
@@ -535,7 +546,7 @@ void acctest_desc_submit(struct acctest_context *ctx, struct hw_desc *hw)
 	/* use MOVDIR64B for DWQ */
 	if (ctx->dedicated)
 		movdir64b(ctx->wq_reg, hw);
-	else /* use ENQCMD for SWQ */
-		if (acctest_enqcmd(ctx, hw))
+	else /* use ENQCMD or write for SWQ */
+		if (acctest_desc_submit_swq(ctx, hw))
 			usleep(10000);
 }
