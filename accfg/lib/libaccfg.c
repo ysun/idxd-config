@@ -586,6 +586,8 @@ static void *add_device(void *parent, int id, const char *ctl_base,
 	device->version = accfg_get_param_unsigned_llong(ctx, dfd, "version");
 	device->durable_wr_opt_out = accfg_get_param_long(ctx, dfd,
 			"durable_wr_opt_out");
+	device->sgl_size = accfg_get_param_long(ctx, dfd,
+			"sgl_size");
 	device->device_path = realpath(ctl_base, NULL);
 	close(dfd);
 	if (!device->device_path) {
@@ -1264,6 +1266,12 @@ ACCFG_EXPORT int accfg_device_get_durable_wr_opt_out(
 	return device->durable_wr_opt_out;
 }
 
+ACCFG_EXPORT int accfg_device_get_sgl_size(
+		struct accfg_device *device)
+{
+	return device->sgl_size;
+}
+
 ACCFG_EXPORT int accfg_device_get_clients(struct accfg_device *device)
 {
 	struct accfg_ctx *ctx;
@@ -1342,6 +1350,52 @@ ACCFG_EXPORT int accfg_device_set_durable_wr_opt_out(struct accfg_device *dev, i
 	return 0;
 }
 
+ACCFG_EXPORT int accfg_device_set_sgl_size(struct accfg_device *dev, int val)
+{
+	struct accfg_ctx *ctx;
+	char *path;
+	char buf[SYSFS_ATTR_SIZE];
+
+	if (!dev)
+		return -EINVAL;
+
+	path = dev->device_buf;
+	ctx = accfg_device_get_ctx(dev);
+
+	if (sprintf(path, "%s/sgl-size", dev->device_path) >=
+			(int)dev->buf_len) {
+		err(ctx, "%s; buf len exceeded.\n",
+				accfg_device_get_devname(dev));
+		return -errno;
+	}
+
+	if (access(path, F_OK)) {
+		if (sprintf(path, "%s/%s", dev->device_path,
+					deprecated_attr("sgl_size")) >=
+					(int)dev->buf_len) {
+			err(ctx, "%s; buf len exceeded.\n",
+					accfg_device_get_devname(dev));
+			return -errno;
+		}
+	}
+
+	if (sprintf(buf, "%d", val) < 0) {
+		err(ctx, "%s: sprintf to buf failed: %s\n",
+				accfg_device_get_devname(dev), strerror(errno));
+		return -errno;
+	}
+
+	if (sysfs_write_attr(ctx, path, buf) < 0) {
+		err(ctx, "%s: write failed: %s\n",
+				accfg_device_get_devname(dev), strerror(errno));
+		save_last_error(dev, NULL, NULL, NULL);
+		return -errno;
+	}
+
+	dev->sgl_size = val;
+
+	return 0;
+}
 ACCFG_EXPORT int accfg_device_set_read_buffer_limit(struct accfg_device *dev, int val)
 {
 	struct accfg_ctx *ctx;

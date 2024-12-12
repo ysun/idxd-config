@@ -56,6 +56,7 @@ struct accfg_device {
 	uint64_t gencap;
 	int pasid_enabled;
 	int durable_wr_opt_out;
+	int sgl_size;
 };
 
 struct accfg_group {
