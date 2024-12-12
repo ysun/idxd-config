@@ -37,6 +37,8 @@ static struct group_parameters group_param = {
 	.traffic_class_b = INT_MAX,
 	.desc_progress_limit = INT_MAX,
 	.batch_progress_limit = INT_MAX,
+	.read_bandwidth_limit = INT_MAX,
+	.write_bandwidth_limit = INT_MAX,
 };
 
 static struct wq_parameters wq_param = {
@@ -128,6 +130,22 @@ static int accel_config_parse_group_attribs(struct accfg_group *group,
 		return -EINVAL;
 	}
 
+	if (group_params->read_bandwidth_limit != INT_MAX &&
+			(group_params->read_bandwidth_limit < 0 ||
+			 group_params->read_bandwidth_limit > 3)) {
+		fprintf(stderr,
+			"configured read_bandwidth_limit reserved for group is not within range\n");
+		return -EINVAL;
+	}
+
+	if (group_params->write_bandwidth_limit != INT_MAX &&
+			(group_params->write_bandwidth_limit < 0 ||
+			 group_params->write_bandwidth_limit > 3)) {
+		fprintf(stderr,
+			"configured write_bandwidth_limit reserved for group is not within range\n");
+		return -EINVAL;
+	}
+
 	if (group_params->read_buffers_allowed != UINT_MAX &&
 			group_params->read_buffers_allowed >= UCHAR_MAX) {
 		fprintf(stderr, "invalid read-buffers-allowed value\n");
@@ -201,6 +219,20 @@ static int accel_config_parse_group_attribs(struct accfg_group *group,
 	if (group_params->batch_progress_limit != INT_MAX) {
 		rc = accfg_group_set_batch_progress_limit(group,
 			group_params->batch_progress_limit);
+		if (rc < 0)
+			return rc;
+	}
+
+	if (group_params->read_bandwidth_limit != INT_MAX) {
+		rc = accfg_group_set_read_bandwidth_limit(group,
+			group_params->read_bandwidth_limit);
+		if (rc < 0)
+			return rc;
+	}
+
+	if (group_params->write_bandwidth_limit != INT_MAX) {
+		rc = accfg_group_set_write_bandwidth_limit(group,
+			group_params->write_bandwidth_limit);
 		if (rc < 0)
 			return rc;
 	}
@@ -482,6 +514,12 @@ int cmd_config_group(int argc, const char **argv, void *ctx)
 		OPT_INTEGER('p', "batch-progress-limit",
 			     &group_param.batch_progress_limit,
 			     "specify batch progress limit for group"),
+		OPT_INTEGER('o', "read-bandwidth-limit",
+			     &group_param.read_bandwidth_limit,
+			     "specify read bandwidth limit for group"),
+		OPT_INTEGER('i', "write-bandwidth-limit",
+			     &group_param.write_bandwidth_limit,
+			     "specify write bandwidth limit for group"),
 		OPT_END(),
 	};
 
