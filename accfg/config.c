@@ -80,6 +80,7 @@ static const struct device_set_table device_table[] = {
 	{ "token_limit", accfg_device_set_read_buffer_limit, NULL },
 	{ "read_buffer_limit", accfg_device_set_read_buffer_limit, NULL },
 	{ "event_log_size", accfg_device_set_event_log_size, NULL },
+	{ "durable_wr_opt_out", accfg_device_set_durable_wr_opt_out, NULL },
 };
 
 static bool is_group_traffic_class_writable(struct accfg_group *group,

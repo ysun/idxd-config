@@ -91,6 +91,7 @@ struct dev_parameters {
 	unsigned int token_limit __attribute((deprecated));
 	unsigned int read_buffer_limit;
 	int event_log_size;
+	int durable_wr_opt_out;
 };
 
 extern char *accfg_basenames[];
