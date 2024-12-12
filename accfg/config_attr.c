@@ -413,6 +413,8 @@ int cmd_config_device(int argc, const char **argv, void *ctx)
 			     "specify read buffer limit by device"),
 		OPT_INTEGER('e', "event-log-size", &dev_param.event_log_size,
 			     "specify event log size for device"),
+		OPT_INTEGER('d', "durable-wr", &dev_param.durable_wr_opt_out,
+			     "specify durable_wr_opt_out for device"),
 		OPT_END(),
 	};
 
