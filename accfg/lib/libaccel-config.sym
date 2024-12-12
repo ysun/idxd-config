@@ -20,6 +20,8 @@ LIBACCFG_1 {
 	accfg_device_get_max_work_queues_size;
 	accfg_device_get_durable_wr_opt_out;
 	accfg_device_set_durable_wr_opt_out;
+	accfg_device_get_max_sgl_size;
+	accfg_device_set_max_sgl_size;
 	accfg_device_get_numa_node;
 	accfg_device_get_ims_size;
 	accfg_device_get_max_batch_size;
@@ -197,4 +199,5 @@ global:
 	accfg_device_get_event_log_size;
 	accfg_device_set_event_log_size;
 	accfg_device_set_durable_wr_opt_out;
+	accfg_device_set_max_sgl_size;
 } LIBACCFG_13;
