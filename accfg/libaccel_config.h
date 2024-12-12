@@ -108,6 +108,8 @@ struct group_parameters {
 	int traffic_class_b;
 	int desc_progress_limit;
 	int batch_progress_limit;
+	int read_bandwidth_limit;
+	int write_bandwidth_limit;
 };
 
 struct wq_parameters {
@@ -268,6 +270,10 @@ int accfg_group_get_desc_progress_limit(struct accfg_group *group);
 int accfg_group_set_desc_progress_limit(struct accfg_group *group, int val);
 int accfg_group_get_batch_progress_limit(struct accfg_group *group);
 int accfg_group_set_batch_progress_limit(struct accfg_group *group, int val);
+int accfg_group_get_read_bandwidth_limit(struct accfg_group *group);
+int accfg_group_set_read_bandwidth_limit(struct accfg_group *group, int val);
+int accfg_group_get_write_bandwidth_limit(struct accfg_group *group);
+int accfg_group_set_write_bandwidth_limit(struct accfg_group *group, int val);
 
 /* libaccfg function for wq */
 struct accfg_wq;

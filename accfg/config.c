@@ -94,6 +94,10 @@ static bool is_group_desc_progress_limit_writable(struct accfg_group *group,
 		int val);
 static bool is_group_batch_progress_limit_writable(struct accfg_group *group,
 		int val);
+static bool is_group_read_bandwidth_limit_writable(struct accfg_group *group,
+		int val);
+static bool is_group_write_bandwidth_limit_writable(struct accfg_group *group,
+		int val);
 
 static const struct group_set_table group_table[] = {
 	{ "tokens_reserved", accfg_group_set_read_buffers_reserved, NULL,
@@ -116,6 +120,10 @@ static const struct group_set_table group_table[] = {
 		is_group_desc_progress_limit_writable },
 	{ "batch_progress_limit", accfg_group_set_batch_progress_limit, NULL,
 		is_group_batch_progress_limit_writable },
+	{ "read_bandwidth_limit", accfg_group_set_read_bandwidth_limit, NULL,
+		is_group_read_bandwidth_limit_writable },
+	{ "write_bandwidth_limit", accfg_group_set_write_bandwidth_limit, NULL,
+		is_group_write_bandwidth_limit_writable },
 };
 
 static bool is_wq_threshold_writable(struct accfg_wq *wq, int val);
@@ -280,6 +288,30 @@ static bool is_group_batch_progress_limit_writable(struct accfg_group *group,
 		return false;
 
 	if (accfg_group_get_batch_progress_limit(group) < 0)
+		return false;
+
+	return true;
+}
+
+static bool is_group_read_bandwidth_limit_writable(struct accfg_group *group,
+		int val)
+{
+	if (val < 0 || val > 3)
+		return false;
+
+	if (accfg_group_get_read_bandwidth_limit(group) < 0)
+		return false;
+
+	return true;
+}
+
+static bool is_group_write_bandwidth_limit_writable(struct accfg_group *group,
+		int val)
+{
+	if (val < 0 || val > 3)
+		return false;
+
+	if (accfg_group_get_write_bandwidth_limit(group) < 0)
 		return false;
 
 	return true;
@@ -934,6 +966,23 @@ static struct json_object *config_group_to_json(struct accfg_group *group,
 			goto err;
 
 		json_object_object_add(jgroup, "batch_progress_limit", jobj);
+	}
+
+	gpl = accfg_group_get_read_bandwidth_limit(group);
+	if (gpl >= 0) {
+		jobj = json_object_new_int(gpl);
+		if (!jobj)
+			goto err;
+
+		json_object_object_add(jgroup, "read_bandwidth_limit", jobj);
+	}
+	gpl = accfg_group_get_write_bandwidth_limit(group);
+	if (gpl >= 0) {
+		jobj = json_object_new_int(gpl);
+		if (!jobj)
+			goto err;
+
+		json_object_object_add(jgroup, "write_bandwidth_limit", jobj);
 	}
 
 	return jgroup;
