@@ -26,6 +26,7 @@ static struct dev_parameters dev_param = {
 	.read_buffer_limit = UINT_MAX,
 	.event_log_size = INT_MAX,
 	.durable_wr_opt_out = INT_MAX,
+	.max_sgl_size = INT_MAX,
 };
 
 static struct group_parameters group_param = {

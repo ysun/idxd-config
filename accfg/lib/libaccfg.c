@@ -586,6 +586,8 @@ static void *add_device(void *parent, int id, const char *ctl_base,
 	device->version = accfg_get_param_unsigned_llong(ctx, dfd, "version");
 	device->durable_wr_opt_out = accfg_get_param_long(ctx, dfd,
 			"durable_wr_opt_out");
+	device->max_sgl_size = accfg_get_param_long(ctx, dfd,
+			"max_sgl_size");
 	device->device_path = realpath(ctl_base, NULL);
 	close(dfd);
 	if (!device->device_path) {
@@ -1262,6 +1264,12 @@ ACCFG_EXPORT int accfg_device_get_durable_wr_opt_out(
 		struct accfg_device *device)
 {
 	return device->durable_wr_opt_out;
+}
+
+ACCFG_EXPORT int accfg_device_get_max_sgl_size(
+		struct accfg_device *device)
+{
+	return device->max_sgl_size;
 }
 
 ACCFG_EXPORT int accfg_device_get_clients(struct accfg_device *device)
