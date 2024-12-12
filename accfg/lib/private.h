@@ -84,6 +84,8 @@ struct accfg_group {
 	int traffic_class_b;
 	unsigned int desc_progress_limit;
 	unsigned int batch_progress_limit;
+	unsigned int read_bandwidth_limit;
+	unsigned int write_bandwidth_limit;
 };
 
 struct accfg_engine {
