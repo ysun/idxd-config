@@ -49,6 +49,7 @@ static struct wq_parameters wq_param = {
 	.threshold = INT_MAX,
 	.max_batch_size = INT_MAX,
 	.max_transfer_size = INT_MAX,
+	.max_sgl_size = INT_MAX,
 	.ats_disable = INT_MAX,
 	.prs_disable = INT_MAX,
 };
@@ -253,6 +254,7 @@ static int accel_config_parse_wq_attribs(struct accfg_device *device,
 	int max_groups;
 	unsigned int max_wq_size, max_batch_size;
 	uint64_t max_transfer_size;
+	uint64_t max_sgl_size;
 	int rc = 0;
 
 	if (wq_params->mode) {
@@ -268,6 +270,7 @@ static int accel_config_parse_wq_attribs(struct accfg_device *device,
 	max_wq_size = accfg_device_get_max_work_queues_size(device);
 	max_batch_size = accfg_device_get_max_batch_size(device);
 	max_transfer_size = accfg_device_get_max_transfer_size(device);
+	max_sgl_size = accfg_device_get_max_sgl_size(device);
 
 	if ((wq_params->wq_size > max_wq_size)
 		&& (wq_params->wq_size != INT_MAX)) {
@@ -311,6 +314,14 @@ static int accel_config_parse_wq_attribs(struct accfg_device *device,
 		&& (wq_params->max_transfer_size != INT_MAX)) {
 		fprintf(stderr,
 			"valid max-transfer-size should be 1 to %" PRIu64 "\n", max_transfer_size);
+		return -EINVAL;
+	}
+
+	if ((wq_params->max_sgl_size < 1
+		|| wq_params->max_sgl_size > max_sgl_size)
+		&& (wq_params->max_sgl_size != INT_MAX)) {
+		fprintf(stderr,
+			"valid max-sgl-size should be 1 to %" PRIu64 "\n", max_sgl_size);
 		return -EINVAL;
 	}
 
@@ -406,6 +417,12 @@ static int accel_config_parse_wq_attribs(struct accfg_device *device,
 
 	if (wq_params->max_transfer_size != INT_MAX) {
 		rc = accfg_wq_set_max_transfer_size(wq, wq_params->max_transfer_size);
+		if (rc < 0)
+			return rc;
+	}
+
+	if (wq_params->max_sgl_size != INT_MAX) {
+		rc = accfg_wq_set_max_sgl_size(wq, wq_params->max_sgl_size);
 		if (rc < 0)
 			return rc;
 	}
@@ -599,6 +616,8 @@ int cmd_config_wq(int argc, const char **argv, void *ctx)
 			     "specify max-batch-size used by wq"),
 		OPT_U64('x', "max-transfer-size", &wq_param.max_transfer_size,
 			     "specify max-transfer-size used by wq"),
+		OPT_U64('l', "max-sgl-size", &wq_param.max_sgl_size,
+			     "specify max-sgl-size used by wq"),
 		OPT_INTEGER('a', "ats-disable", &wq_param.ats_disable,
 			    "specify per wq ats-disable"),
 		OPT_END(),

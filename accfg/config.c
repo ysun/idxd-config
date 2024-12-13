@@ -225,6 +225,7 @@ static const struct wq_set_table wq_table[] = {
 	{ "mode", NULL, NULL, accfg_wq_set_str_mode, NULL },
 	{ "max_batch_size", accfg_wq_set_max_batch_size, NULL, NULL, NULL },
 	{ "max_transfer_size", NULL, accfg_wq_set_max_transfer_size, NULL, NULL },
+	{ "max_sgl_size", NULL, accfg_wq_set_max_sgl_size, NULL, NULL },
 	{ "threshold", accfg_wq_set_threshold, NULL, NULL,
 		is_wq_threshold_writable },
 	{ "ats_disable", accfg_wq_set_ats_disable, NULL, NULL,

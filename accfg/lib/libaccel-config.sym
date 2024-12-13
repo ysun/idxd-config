@@ -26,6 +26,7 @@ LIBACCFG_1 {
 	accfg_device_get_ims_size;
 	accfg_device_get_max_batch_size;
 	accfg_device_get_max_transfer_size;
+	accfg_device_get_max_sgl_size;
 	accfg_device_get_configurable;
 	accfg_device_get_pasid_enabled;
 	accfg_device_get_errors;
@@ -132,8 +133,10 @@ LIBACCFG_7 {
 global:
 	accfg_wq_get_max_batch_size;
 	accfg_wq_get_max_transfer_size;
+	accfg_wq_get_max_sgl_size;
 	accfg_wq_set_max_batch_size;
 	accfg_wq_set_max_transfer_size;
+	accfg_wq_set_max_sgl_size;
 } LIBACCFG_6;
 
 LIBACCFG_8 {
