@@ -230,10 +230,12 @@ int acctest_alloc(struct acctest_context *ctx, int shared, int dev_id, int wq_id
 	ctx->bof = accfg_wq_get_block_on_fault(ctx->wq);
 	ctx->wq_max_batch_size = accfg_wq_get_max_batch_size(ctx->wq);
 	ctx->wq_max_xfer_size = accfg_wq_get_max_transfer_size(ctx->wq);
+	ctx->wq_max_xfer_size = accfg_wq_get_max_sgl_size(ctx->wq);
 	ctx->ats_disable = accfg_wq_get_ats_disable(ctx->wq);
 
 	ctx->max_batch_size = accfg_device_get_max_batch_size(dev);
 	ctx->max_xfer_size = accfg_device_get_max_transfer_size(dev);
+	ctx->max_xfer_size = accfg_device_get_max_sgl_size(dev);
 	ctx->max_xfer_bits = bsr(ctx->max_xfer_size);
 	ctx->compl_size = accfg_device_get_compl_size(dev);
 

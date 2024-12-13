@@ -59,6 +59,7 @@ static struct wq_parameters wq00_param = {
 	.threshold = 15,
 	.max_batch_size = 16,
 	.max_transfer_size = 16,
+	.max_sgl_size = 1024,
 	.ats_disable = 0,
 	.mode = "shared",
 	.type = "user",
@@ -72,7 +73,8 @@ static struct wq_parameters wq01_param = {
 	.priority = 10,
 	.block_on_fault = 0,
 	.max_batch_size = (1 << 4),
-	.max_transfer_size = (1l << 16),
+	.max_transfer_size = (1l << 20),
+	.max_sgl_size = (1l << 10),
 	.ats_disable = 0,
 	.mode = "dedicated",
 	.type = "user",
@@ -88,6 +90,7 @@ static struct wq_parameters wq02_param = {
 	.threshold = 8,
 	.max_batch_size = (1 << 8),
 	.max_transfer_size = (1l << 30),
+	.max_sgl_size = (1l << 20),
 	.ats_disable = 0,
 	.mode = "shared",
 	.type = "user",
@@ -102,6 +105,7 @@ static struct wq_parameters wq03_param = {
 	.block_on_fault = 0,
 	.max_batch_size = (1 << 9),
 	.max_transfer_size = (1l << 31),
+	.max_sgl_size = (1l << 10),
 	.ats_disable = 0,
 	.mode = "dedicated",
 	.type = "user",
@@ -254,6 +258,10 @@ static int config_wq(struct accfg_ctx *ctx, struct accfg_device *device,
 				wq_param->max_transfer_size);
 	if (rc)
 		return rc;
+	rc = accfg_wq_set_max_sgl_size(wq, wq_param->max_sgl_size);
+	if (rc)
+		return rc;
+
 	if (wq_param->threshold) {
 		rc = accfg_wq_set_threshold(wq, wq_param->threshold);
 		if (rc)
@@ -305,6 +313,11 @@ static int check_wq(struct accfg_ctx *ctx, struct accfg_device *device,
 	if (wq_param->max_transfer_size !=
 			accfg_wq_get_max_transfer_size(wq)) {
 		fprintf(stderr, "%s failed on max_transfer_size\n", __func__);
+		return -EINVAL;
+	}
+	if (wq_param->max_sgl_size !=
+			accfg_wq_get_max_sgl_size(wq)) {
+		fprintf(stderr, "%s failed on max_sgl_size\n", __func__);
 		return -EINVAL;
 	}
 	if (strcmp(wq_param->name, accfg_wq_get_type_name(wq)) != 0) {
@@ -603,6 +616,13 @@ static int wq_bounds_test(struct accfg_ctx *ctx, struct config_test_ctx *ct_ctx)
 		return -EINVAL;
 	}
 
+	printf("trying to set wq max_sgl_size = 0\n");
+	rc = accfg_wq_set_max_sgl_size(wq, 0);
+	if (!rc) {
+		fprintf(stderr, "max_sgl_size accepts 0 value\n");
+		return -EINVAL;
+	}
+
 	/* should not be greater device max_batch_size/max_transfer_size */
 	printf("trying to set wq max_batch_size exceeding device max\n");
 	rc = accfg_wq_set_max_batch_size(wq,
@@ -617,6 +637,14 @@ static int wq_bounds_test(struct accfg_ctx *ctx, struct config_test_ctx *ct_ctx)
 			(accfg_device_get_max_transfer_size(device) << 1));
 	if (!rc) {
 		fprintf(stderr, "max_transfer_size exceeds device max size\n");
+		return -EINVAL;
+	}
+
+	printf("trying to set wq max_sgl_size exceeding device max\n");
+	rc = accfg_wq_set_max_sgl_size(wq,
+			(accfg_device_get_max_sgl_size(device) << 1));
+	if (!rc) {
+		fprintf(stderr, "max_sgl_size exceeds device max size\n");
 		return -EINVAL;
 	}
 
