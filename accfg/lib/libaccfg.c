@@ -575,6 +575,8 @@ static void *add_device(void *parent, int id, const char *ctl_base,
 			"max_batch_size");
 	device->max_transfer_size =
 	    accfg_get_param_unsigned_llong(ctx, dfd, "max_transfer_size");
+	device->max_sgl_size =
+	    accfg_get_param_unsigned_llong(ctx, dfd, "max_sgl_size");
 	device->gencap = accfg_get_param_unsigned_llong(ctx, dfd, "gen_cap");
 	device->configurable = accfg_get_param_unsigned_llong(ctx, dfd,
 			"configurable");
@@ -710,6 +712,7 @@ static void *add_wq(void *parent, int id, const char *wq_base,
 	wq->threshold =  accfg_get_param_long(ctx, dfd, "threshold");
 	wq->max_batch_size =  accfg_get_param_long(ctx, dfd, "max_batch_size");
 	wq->max_transfer_size =  accfg_get_param_long(ctx, dfd, "max_transfer_size");
+	wq->max_sgl_size =  accfg_get_param_long(ctx, dfd, "max_sgl_size");
 	wq->ats_disable = accfg_get_param_long(ctx, dfd, "ats_disable");
 	wq->prs_disable = accfg_get_param_long(ctx, dfd, "prs_disable");
 
@@ -1988,6 +1991,11 @@ ACCFG_EXPORT uint64_t accfg_wq_get_max_transfer_size(struct accfg_wq *wq)
 	return wq->max_transfer_size;
 }
 
+ACCFG_EXPORT uint64_t accfg_wq_get_max_sgl_size(struct accfg_wq *wq)
+{
+	return wq->max_sgl_size;
+}
+
 ACCFG_EXPORT int accfg_wq_get_occupancy(struct accfg_wq *wq)
 {
 	long occ;
@@ -2415,6 +2423,7 @@ ACCFG_EXPORT int accfg_wq_set_##field( \
 }
 
 accfg_wq_set_long_field(wq, val, max_transfer_size)
+accfg_wq_set_long_field(wq, val, max_sgl_size)
 
 #define accfg_wq_set_str_field(wq, val, field) \
 ACCFG_EXPORT int accfg_wq_set_str_##field( \

@@ -434,6 +434,13 @@ struct json_object *util_wq_to_json(struct accfg_wq *wq,
 			json_object_object_add(jaccfg, "max_transfer_size", jobj);
 	}
 
+	int_val = accfg_wq_get_max_sgl_size(wq);
+	if (int_val >= 0) {
+		jobj = json_object_new_int64(int_val);
+		if (jobj)
+			json_object_object_add(jaccfg, "max_sgl_size", jobj);
+	}
+
 	if (!(flags & UTIL_JSON_SAVE) && accfg_wq_get_cdev_minor(wq) >= 0) {
 		jobj = json_object_new_int(accfg_wq_get_cdev_minor(wq));
 		if (jobj)
