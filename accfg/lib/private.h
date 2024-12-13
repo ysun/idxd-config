@@ -125,6 +125,7 @@ struct accfg_wq {
 	char *state;
 	unsigned int max_batch_size;
 	uint64_t max_transfer_size;
+	uint64_t max_sgl_size;
 	int ats_disable;
 	int prs_disable;
 };
