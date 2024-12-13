@@ -196,12 +196,12 @@ struct json_object *util_device_to_json(struct accfg_device *device,
 		json_object_object_add(jdevice, "durable_wr_opt_out", jobj);
 	}
 
-	int_val = accfg_device_get_sgl_size(device);
+	int_val = accfg_device_get_max_sgl_size(device);
 	if (int_val >= 0) {
 		jobj = json_object_new_int(int_val);
 		if (!jobj)
 			goto err;
-		json_object_object_add(jdevice, "sgl_size", jobj);
+		json_object_object_add(jdevice, "max_sgl_size", jobj);
 	}
 
 	if (flags & UTIL_JSON_SAVE) {

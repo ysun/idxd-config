@@ -26,7 +26,7 @@ static struct dev_parameters dev_param = {
 	.read_buffer_limit = UINT_MAX,
 	.event_log_size = INT_MAX,
 	.durable_wr_opt_out = INT_MAX,
-	.sgl_size = INT_MAX,
+	.max_sgl_size = INT_MAX,
 };
 
 static struct group_parameters group_param = {
@@ -90,9 +90,9 @@ static int accel_config_parse_device_attribs(struct accfg_device *dev,
 			return rc;
 	}
 
-	if (device_param->sgl_size != INT_MAX) {
-		rc = accfg_device_set_sgl_size(dev,
-				device_param->sgl_size);
+	if (device_param->max_sgl_size != INT_MAX) {
+		rc = accfg_device_set_max_sgl_size(dev,
+				device_param->max_sgl_size);
 		if (rc < 0)
 			return rc;
 	}
@@ -455,8 +455,8 @@ int cmd_config_device(int argc, const char **argv, void *ctx)
 			     "specify event log size for device"),
 		OPT_INTEGER('d', "durable-wr", &dev_param.durable_wr_opt_out,
 			     "specify durable_wr_opt_out for device"),
-		OPT_INTEGER('s', "sgl-size", &dev_param.sgl_size,
-			     "specify SGL size"),
+		OPT_INTEGER('s', "max-sgl-size", &dev_param.max_sgl_size,
+			     "specify Max SGL size"),
 		OPT_END(),
 	};
 

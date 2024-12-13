@@ -586,8 +586,8 @@ static void *add_device(void *parent, int id, const char *ctl_base,
 	device->version = accfg_get_param_unsigned_llong(ctx, dfd, "version");
 	device->durable_wr_opt_out = accfg_get_param_long(ctx, dfd,
 			"durable_wr_opt_out");
-	device->sgl_size = accfg_get_param_long(ctx, dfd,
-			"sgl_size");
+	device->max_sgl_size = accfg_get_param_long(ctx, dfd,
+			"max_sgl_size");
 	device->device_path = realpath(ctl_base, NULL);
 	close(dfd);
 	if (!device->device_path) {
@@ -1270,10 +1270,10 @@ ACCFG_EXPORT int accfg_device_get_durable_wr_opt_out(
 	return device->durable_wr_opt_out;
 }
 
-ACCFG_EXPORT int accfg_device_get_sgl_size(
+ACCFG_EXPORT int accfg_device_get_max_sgl_size(
 		struct accfg_device *device)
 {
-	return device->sgl_size;
+	return device->max_sgl_size;
 }
 
 ACCFG_EXPORT int accfg_device_get_clients(struct accfg_device *device)
@@ -1354,7 +1354,7 @@ ACCFG_EXPORT int accfg_device_set_durable_wr_opt_out(struct accfg_device *dev, i
 	return 0;
 }
 
-ACCFG_EXPORT int accfg_device_set_sgl_size(struct accfg_device *dev, int val)
+ACCFG_EXPORT int accfg_device_set_max_sgl_size(struct accfg_device *dev, int val)
 {
 	struct accfg_ctx *ctx;
 	char *path;
@@ -1366,7 +1366,7 @@ ACCFG_EXPORT int accfg_device_set_sgl_size(struct accfg_device *dev, int val)
 	path = dev->device_buf;
 	ctx = accfg_device_get_ctx(dev);
 
-	if (sprintf(path, "%s/sgl-size", dev->device_path) >=
+	if (sprintf(path, "%s/max_sgl_size", dev->device_path) >=
 			(int)dev->buf_len) {
 		err(ctx, "%s; buf len exceeded.\n",
 				accfg_device_get_devname(dev));
@@ -1375,7 +1375,7 @@ ACCFG_EXPORT int accfg_device_set_sgl_size(struct accfg_device *dev, int val)
 
 	if (access(path, F_OK)) {
 		if (sprintf(path, "%s/%s", dev->device_path,
-					deprecated_attr("sgl_size")) >=
+					deprecated_attr("max_sgl_size")) >=
 					(int)dev->buf_len) {
 			err(ctx, "%s; buf len exceeded.\n",
 					accfg_device_get_devname(dev));
@@ -1396,7 +1396,7 @@ ACCFG_EXPORT int accfg_device_set_sgl_size(struct accfg_device *dev, int val)
 		return -errno;
 	}
 
-	dev->sgl_size = val;
+	dev->max_sgl_size = val;
 
 	return 0;
 }
