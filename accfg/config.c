@@ -94,7 +94,7 @@ static bool is_group_desc_progress_limit_writable(struct accfg_group *group,
 		int val);
 static bool is_group_batch_progress_limit_writable(struct accfg_group *group,
 		int val);
-static bool is_group_bandwidth_limit_writable(struct accfg_group *group,
+static bool is_group_write_bandwidth_limit_writable(struct accfg_group *group,
 		int val);
 
 static const struct group_set_table group_table[] = {
@@ -119,7 +119,7 @@ static const struct group_set_table group_table[] = {
 	{ "batch_progress_limit", accfg_group_set_batch_progress_limit, NULL,
 		is_group_batch_progress_limit_writable },
 	{ "write_bandwidth_limit", accfg_group_set_write_bandwidth_limit, NULL,
-		is_group_bandwidth_limit_writable },
+		is_group_write_bandwidth_limit_writable },
 };
 
 static bool is_wq_threshold_writable(struct accfg_wq *wq, int val);
@@ -289,7 +289,7 @@ static bool is_group_batch_progress_limit_writable(struct accfg_group *group,
 	return true;
 }
 
-static bool is_group_bandwidth_limit_writable(struct accfg_group *group,
+static bool is_group_write_bandwidth_limit_writable(struct accfg_group *group,
 		int val)
 {
 	if (val < 0 || val > 3)
