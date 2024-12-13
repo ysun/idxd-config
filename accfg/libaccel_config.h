@@ -271,6 +271,8 @@ int accfg_group_set_desc_progress_limit(struct accfg_group *group, int val);
 int accfg_group_get_batch_progress_limit(struct accfg_group *group);
 int accfg_group_set_batch_progress_limit(struct accfg_group *group, int val);
 int accfg_group_get_read_bandwidth_limit(struct accfg_group *group);
+int accfg_group_set_read_bandwidth_limit(struct accfg_group *group, int val);
+int accfg_group_get_write_bandwidth_limit(struct accfg_group *group);
 int accfg_group_set_write_bandwidth_limit(struct accfg_group *group, int val);
 
 /* libaccfg function for wq */

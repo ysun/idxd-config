@@ -112,6 +112,16 @@ static struct json_object *group_to_json(struct accfg_group *group,
 
 		json_object_object_add(jgroup, "read_bandwidth_limit", jobj);
 	}
+
+	gpl = accfg_group_get_write_bandwidth_limit(group);
+	if (gpl >= 0) {
+		jobj = json_object_new_int(gpl);
+		if (!jobj)
+			goto err;
+
+		json_object_object_add(jgroup, "write_bandwidth_limit", jobj);
+	}
+
 	return jgroup;
 
 err:

@@ -193,6 +193,8 @@ global:
 	accfg_group_get_desc_progress_limit;
 	accfg_group_set_desc_progress_limit;
 	accfg_group_get_read_bandwidth_limit;
+	accfg_group_set_read_bandwidth_limit;
+	accfg_group_get_write_bandwidth_limit;
 	accfg_group_set_write_bandwidth_limit;
 	accfg_group_get_batch_progress_limit;
 	accfg_group_set_batch_progress_limit;
