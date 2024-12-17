@@ -96,7 +96,7 @@ static int device_action(int argc, const char **argv, const char *usage,
 		NULL
 	};
 	int i, rc = -EINVAL, success = 0;
-	enum accfg_device_state state;
+	enum accfg_device_state;
 	struct accfg_device *device = NULL;
 	unsigned int bmap_dev = 0;
 
@@ -155,18 +155,6 @@ static int device_action(int argc, const char **argv, const char *usage,
 		}
 
 		rc = dev_action_switch(device, action);
-		if (rc == 0) {
-			/*
-			 * Double check if the state of the device
-			 * matches with the enable/disable
-			 */
-			state = accfg_device_get_state(device);
-			if (((state != ACCFG_DEVICE_ENABLED) &&
-					(action == DEV_ACTION_ENABLE)) ||
-					((state != ACCFG_DEVICE_DISABLED) &&
-					(action == DEV_ACTION_DISABLE)))
-				rc = ENXIO;
-		}
 		if (rc == 0)
 			success++;
 		else
@@ -180,7 +168,7 @@ static int device_action(int argc, const char **argv, const char *usage,
 	if (success)
 		return 0;
 
-	return rc;
+	return -ENXIO;
 }
 
 static int action_disable_wq(struct accfg_wq *wq, const char *wq_name)
