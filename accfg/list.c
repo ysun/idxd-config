@@ -14,6 +14,7 @@
 #include <util/parse-options.h>
 #include <ccan/array_size/array_size.h>
 #include <accfg.h>
+#include <string.h>
 
 static struct util_filter_params util_param;
 static struct {
@@ -24,6 +25,96 @@ static struct {
 	bool idle;
 	bool save_conf;
 } list;
+
+struct map_op_name {
+    int op_code;
+    const char *op_name;
+};
+
+#define BITMAP_SIZE 8
+#define IAX_OP_CODE_NAME		\
+	{0x02, "Drain"},		\
+	{0x0A, "Translation Fetch"},	\
+	{0x40, "Decrypt"},		\
+	{0x41, "Encrypt"},		\
+	{0x42, "Decompress"},		\
+	{0x43, "Compress"},		\
+	{0x44, "CRC64"},		\
+	{0x48, "Zdecompress32"},	\
+	{0x49, "Zdecompress16"},	\
+	{0x4A, "Zdecompress8"},		\
+	{0x4C, "Zcompress32"},		\
+	{0x4D, "Zcompress16"},		\
+	{0x4E, "Zcompress8"},		\
+	{0x50, "Scan"},			\
+	{0x51, "Set Membership"},	\
+	{0x52, "Extract"},		\
+	{0x53, "Select"},		\
+	{0x54, "BLE Burst"},		\
+	{0x55, "Find Unique"},		\
+	{0x56, "Expand"}
+
+struct map_op_name iax_op_code_name[] = {
+       IAX_OP_CODE_NAME,
+       {-1, NULL}
+};
+
+#define DSA_OP_CODE_NAME			\
+	{0x01, "Batch"},			\
+	{0x02, "Drain"},			\
+	{0x03, "Memory Move"},			\
+	{0x04, "Fill"},				\
+	{0x05, "Compare"},			\
+	{0x06, "Compare Pattern"},		\
+	{0x07, "Create Delta Record"},		\
+	{0x08, "Apply Delta Record"},		\
+	{0x09, "Memory Copy with Dualcast"},	\
+	{0x0A, "Translation Fetch"},		\
+	{0x10, "CRC Generation"},		\
+	{0x11, "Copy with CRC Generation"},	\
+	{0x12, "DIF Check"},			\
+	{0x13, "DIF Insert"},			\
+	{0x14, "DIF Strip"},			\
+	{0x15, "DIF Update"},			\
+	{0x17, "DIX Generate"},			\
+	{0x20, "Cache Flush"},			\
+	{0x21, "Update Window"},		\
+	{0x23, "Inter-Domain Momery Copy"},	\
+	{0x24, "Inter-Domain Fill"},		\
+	{0x25, "Inter-Domain Compare"},		\
+	{0x26, "Inter-Domain Compare Pattern"},	\
+	{0x27, "Inter-Domain Cache Flush"}
+
+struct map_op_name dsa_op_code_name[] = {
+       DSA_OP_CODE_NAME,
+       {-1, NULL}
+};
+
+
+static const char* get_op_name(struct map_op_name *code_name, int op_code)
+{
+       int i = 0;
+       while (code_name[i].op_code != -1) {
+               if (code_name[i].op_code == op_code) {
+                       return code_name[i].op_name;
+               }
+               i++;
+       }
+       return NULL;
+}
+
+static int get_bit(struct accfg_op_cap op_cap, int bit_index)
+{
+       int array_index = (BITMAP_SIZE - 1) - (bit_index / 32);
+       int bit_offset = bit_index % 32;
+
+       if (bit_index < 0 || bit_index >= 256) {
+               printf("Error: bit_index out of range (0-255)\n");
+               return -1;
+       }
+
+       return (op_cap.bits[array_index] & (1 << bit_offset)) != 0;
+}
 
 static uint64_t listopts_to_flags(void)
 {
@@ -692,6 +783,63 @@ int cmd_list(int argc, const char **argv, void *ctx)
 	return 0;
 }
 
+int cmd_info(int argc, const char **argv, void *ctx)
+{
+	struct map_op_name *cur_op_name = NULL;
+	struct accfg_device *device;
+	struct accfg_op_cap op_cap;
+	bool verbose = false;
+	const char *dev_name;
+	const char *op_name;
+	int rc, j, has_op;
+
+	const struct option options[] = {
+		OPT_BOOLEAN('v', "verbose", &verbose, "show more info"),
+		OPT_END(),
+	};
+	const char *const u[] = {
+		"accel-config info [<options>]",
+		NULL
+	};
+
+	argc = parse_options(argc, argv, options, u, 0);
+	for (j = 0; j < argc; j++)
+		error("unknown parameter \"%s\"\n", argv[j]);
+
+	accfg_device_foreach(ctx, device) {
+		dev_name = accfg_device_get_devname(device);
+		fprintf(stdout, "%s %s\n", dev_name,
+			accfg_device_is_active(device)? "[active]" : "");
+
+		rc = accfg_device_get_op_cap(device, &op_cap);
+		if (rc) {
+			printf("Error getting op cap\n");
+			return rc;
+		}
+
+		for (j = 0; j < BITMAP_SIZE; j++)
+			printf("%08x,", op_cap.bits[j]);
+		printf("\b \n");
+
+		if (!verbose)
+			continue;
+
+		if (strstr(dev_name, "dsa") != NULL) {
+			cur_op_name = dsa_op_code_name;
+		} else if (strstr(dev_name, "iax") != NULL) {
+			cur_op_name = iax_op_code_name;
+		}
+		for (int k = 0; k < 256; k++) {
+			has_op = get_bit(op_cap, k);
+			op_name = get_op_name(cur_op_name, k);
+			if (op_name)
+				printf("%s[%c] ", op_name, has_op? '+' : '-');
+		}
+		printf("\n");
+	}
+
+	return 0;
+}
 int cmd_save(int argc, const char **argv, void *ctx)
 {
 	const struct option options[] = {

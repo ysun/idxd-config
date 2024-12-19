@@ -30,6 +30,12 @@ enum wq_action {
 	WQ_ACTION_DISABLE,
 };
 
+enum dev_param {
+	DEV_PARAM_DSA = 1,
+	DEV_PARAM_IAX = 2,
+	DEV_PARAM_ALL = 3,
+};
+
 static struct {
 	bool verbose;
 	bool force;
@@ -90,7 +96,9 @@ static int device_action(int argc, const char **argv, const char *usage,
 		NULL
 	};
 	int i, rc = -EINVAL, success = 0;
-	enum accfg_device_state state;
+	enum accfg_device_state;
+	struct accfg_device *device = NULL;
+	unsigned int bmap_dev = 0;
 
 	argc = parse_options(argc, argv, options, u, 0);
 
@@ -101,13 +109,44 @@ static int device_action(int argc, const char **argv, const char *usage,
 		if (strcmp(argv[i], "all") == 0) {
 			argv[0] = "all";
 			argc = 1;
+			bmap_dev |= DEV_PARAM_ALL;
+			break;
+		}
+		if (strcmp(argv[i], "dsa") == 0) {
+			argv[0] = "dsa";
+			argc = 1;
+			bmap_dev |= DEV_PARAM_DSA;
+			break;
+		}
+		if (strcmp(argv[i], "iax") == 0) {
+			argv[0] = "iax";
+			argc = 1;
+			bmap_dev |= DEV_PARAM_IAX;
 			break;
 		}
 	}
 
-	for (i = 0; i < argc; i++) {
-		struct accfg_device *device;
+	if (bmap_dev) {
+		accfg_device_foreach(ctx, device) {
+			if (strstr(accfg_device_get_devname(device), "iax") &&
+				(bmap_dev & DEV_PARAM_IAX) == 0)
+				continue;
+			if (strstr(accfg_device_get_devname(device), "dsa") &&
+				(bmap_dev & DEV_PARAM_DSA) == 0)
+				continue;
 
+			rc = dev_action_switch(device, action);
+			if (rc == 0) {
+				success++;
+				fprintf(stderr, "%s %d device(s) %s\n",
+					action == DEV_ACTION_ENABLE ? "enabled" : "disabled",
+					success, accfg_device_get_devname(device));
+			}
+		}
+		return 0;
+	}
+
+	for (i = 0; i < argc; i++) {
 		if (parse_device_name(ctx, argv[i], &device)) {
 			if (param.verbose)
 				fprintf(stderr,
@@ -116,18 +155,6 @@ static int device_action(int argc, const char **argv, const char *usage,
 		}
 
 		rc = dev_action_switch(device, action);
-		if (rc == 0) {
-			/*
-			 * Double check if the state of the device
-			 * matches with the enable/disable
-			 */
-			state = accfg_device_get_state(device);
-			if (((state != ACCFG_DEVICE_ENABLED) &&
-					(action == DEV_ACTION_ENABLE)) ||
-					((state != ACCFG_DEVICE_DISABLED) &&
-					(action == DEV_ACTION_DISABLE)))
-				rc = ENXIO;
-		}
 		if (rc == 0)
 			success++;
 		else
@@ -141,7 +168,7 @@ static int device_action(int argc, const char **argv, const char *usage,
 	if (success)
 		return 0;
 
-	return rc;
+	return -ENXIO;
 }
 
 static int action_disable_wq(struct accfg_wq *wq, const char *wq_name)
@@ -246,7 +273,13 @@ static int wq_action(int argc, const char **argv, const char *usage,
 int cmd_disable_device(int argc, const char **argv, void *ctx)
 {
 	char *usage =
-	    "accel-config disable-device <accel_basename0> [<accel_basename1>..<accel_basenameN>] [<options>]";
+	    "\naccel-config disable-device <accel_basename0> [<accel_basename1>..<accel_basenameN>] [<options>]\n"
+	    "accel-config disable-device <device type>\n"
+	    "    device_type: can be one of following values\n"
+	    "        dsa: disable all DSA devices\n"
+	    "        iax: disable all IAX devices\n"
+	    "        all: disable all devices\n";
+
 	int count = device_action(argc, argv, usage, device_disable_options,
 				  DEV_ACTION_DISABLE, ctx);
 	return count >= 0 ? 0 : EXIT_FAILURE;
@@ -255,7 +288,13 @@ int cmd_disable_device(int argc, const char **argv, void *ctx)
 int cmd_enable_device(int argc, const char **argv, void *ctx)
 {
 	char *usage =
-	    "accel-config enable-device <accel_basename0> [<accel_basename1>..<accel_basenameN>] [<options>]";
+	    "\naccel-config enable-device <accel_basename0> [<accel_basename1>..<accel_basenameN>] [<options>]\n"
+	    "accel-config enable-device <device type>\n"
+	    "    device_type: can be one of following values\n"
+	    "        dsa: enable all configured DSA devices\n"
+	    "        iax: enable all configured IAX devices\n"
+	    "        all: enable all configured devices\n";
+
 	int count = device_action(argc, argv, usage, device_options,
 				  DEV_ACTION_ENABLE, ctx);
 	return count >= 0 ? 0 : EXIT_FAILURE;

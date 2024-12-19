@@ -23,6 +23,7 @@ const char accfg_usage_string[] =
 
 static struct cmd_struct commands[] = {
 	{"list", cmd_list},
+	{"info", cmd_info},
 	{"load-config", cmd_config},
 	{"save-config",  cmd_save},
 	{"disable-device", cmd_disable_device},
