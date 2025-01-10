@@ -813,6 +813,44 @@ void dsa_prep_batch(struct batch_task *btsk, unsigned long desc_flags)
 	ctsk->comp->status = 0;
 }
 
+void dsa_prep_gather_reduce(struct acctest_context *ctx, struct task *tsk)
+{
+	//struct hw_desc *hw = tsk->desc;
+	//struct completion_record *compl = tsk->comp;
+	struct hw_desc *hw = tsk->desc;
+
+	memset(hw, 0, sizeof(struct hw_desc));
+	hw->flags = 0xc;
+	hw->rsvd = 0;
+
+	hw->opcode = tsk->opcode;
+	hw->rsvd1 = 0;
+
+	hw->src_addr = (uint64_t)tsk->src1;
+	hw->dst_addr = (uint64_t)tsk->dst1;
+	hw->element_count = tsk->elemwise_cofig.compute_elem_cnt;
+	hw->sgl_size = tsk->sgl_config.sgl_size;
+	hw->base_addr = (uint64_t)tsk->src2;
+
+	hw->iData = tsk->elemwise_cofig.idata_type;	//0: uint8; 1: uint16; 2: uint32; 3: uint64
+	hw->oData = tsk->elemwise_cofig.odata_type;	// 4: FP8_E5M2; 5: FP8_E4M3; 6: FP16; 7: BF16; 8: FP32; 9: FP64
+	hw->compute_type = tsk->elemwise_cofig.compute_type;//1: Add; 3: And; 4: Or; 5: Xor; 6: Min; 7: Max
+	hw->compute_flags = tsk->elemwise_cofig.compute_flags;	//0: No flags
+	hw->inter_domain_selector = 0; //0: No flags
+
+	info("preparing descriptor for gather_reduce\n");
+
+	hw->completion_addr = (uint64_t)(tsk->comp);
+	hw->sgl_fmt = DSA_SGL_FORMAT_3; //0: rsv; 1: fmt1
+
+	tsk->comp->status = 0;
+	tsk->desc->completion_addr = (uint64_t)(tsk->comp);
+
+	info("SGL format:%x, should be %x\n",
+		hw->sgl_fmt, DSA_SGL_FORMAT_1);
+}
+
+
 void dsa_prep_reduce(struct acctest_context *ctx, struct task *tsk)
 {
 	//struct hw_desc *hw = tsk->desc;
@@ -875,7 +913,7 @@ void dsa_prep_type_conv(struct acctest_context *ctx, struct task *tsk)
 	hw->compute_type = 0;	//1: Add; 3: And; 4: Or; 5: Xor; 6: Min; 7: Max
 	hw->xfer_size = tsk->xfer_size;
 
-	info("preparing descriptor for reduce\n");
+	info("preparing descriptor for type conversion\n");
 
 	hw->completion_addr = (uint64_t)(tsk->comp);
 	tsk->comp->status = 0;
