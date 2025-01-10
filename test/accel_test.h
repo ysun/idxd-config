@@ -50,6 +50,23 @@ extern unsigned int ms_timeout;
 extern int debug_logging;
 extern int force_enqcmd;
 
+struct dsa_elemwise_config {
+	enum dsa_data_type	idata_type;
+	enum dsa_data_type	odata_type;
+	enum dsa_cmpute_type compute_type;
+	uint16_t	compute_flags;
+	uint32_t	compute_elem_cnt;
+	uint8_t		inter_domain_selector;
+};
+
+struct dsa_sgl_config {
+	enum dsa_data_type data_type;
+	enum dsa_sgl_format sgl_format;
+	uint16_t	sgl_size;
+	uint32_t	sgl_transfer_size;
+	uint32_t	sgl_elem_cnt;
+};
+
 struct task {
 	struct hw_desc *desc;
 	struct completion_record *comp;
@@ -74,6 +91,8 @@ struct task {
 	int guardtag;
 	unsigned long blks;
 	int blk_idx_flg;
+	struct dsa_elemwise_config elemwise_cofig;
+	struct dsa_sgl_config sgl_config;
 
 	/* Dedicate for IAA test */
 	union {
