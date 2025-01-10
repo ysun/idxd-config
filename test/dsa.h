@@ -76,6 +76,7 @@ int init_dif_updt(struct task *tsk, int tflags, int opcode, unsigned long xfer_s
 int init_cflush(struct task *tsk, int tflags, int opcode, unsigned long xfer_size);
 int init_type_conv(struct task *tsk, int tflags, int opcode, unsigned long xfer_size);
 int init_reduce(struct task *tsk, int tflags, int opcode, unsigned long xfer_size);
+int init_gather_reduce(struct task* tsk, int tflags, int opcode, unsigned long xfer_size);
 int init_reduce_duel(struct task *tsk, int tflags, int opcode, unsigned long xfer_size);
 int init_task(struct task *tsk, int tflags, int opcode,
 	      unsigned long xfer_size);
