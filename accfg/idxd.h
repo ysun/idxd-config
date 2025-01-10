@@ -50,6 +50,15 @@
 #define IDXD_OP_FLAG_DRDBK	0x4000
 #define IDXD_OP_FLAG_DSTS	0x8000
 
+/* DSA Compute flags */
+#define IDXD_DSA_COMPUTE_FLAG_NEGATE_SRC1_OP	0x0001
+#define IDXD_DSA_COMPUTE_FLAG_NEGATE_SRC2_OP	0x0002
+#define IDXD_DSA_COMPUTE_FLAG_FTZ				0x0004
+#define IDXD_DSA_COMPUTE_FLAG_DAZ				0x0008
+#define IDXD_DSA_COMPUTE_FLAG_ROUNDINGTYPE(v)	((v & 0x7) << 4)
+#define IDXD_DSA_COMPUTE_FLAG_TIOSV				0x0080
+#define IDXD_DSA_COMPUTE_FLAG_SIR				0x0100
+
 /* IAX */
 #define IDXD_OP_FLAG_RD_SRC2_AECS	0x010000
 #define IDXD_OP_FLAG_RD_SRC2_2ND	0x020000
@@ -163,6 +172,37 @@ enum dsa_completion_status {
 	DSA_COMP_HW_ERR1,
 	DSA_COMP_HW_ERR_DRB,
 	DSA_COMP_TRANSLATION_FAIL,
+};
+
+enum dsa_sgl_format {
+	DSA_SGL_FORMAT_RESERVED = 0,
+	DSA_SGL_FORMAT_1,
+	DSA_SGL_FORMAT_2,
+	DSA_SGL_FORMAT_3
+};
+
+enum dsa_data_type {
+	DSA_TYPE_UINT8_INT8 = 0,
+	DSA_TYPE_UINT16_INT16,
+	DSA_TYPE_UINT32_INT32,
+	DSA_TYPE_UINT64_INT64,
+	DSA_TYPE_FP8_E5M2,
+	DSA_TYPE_FP8_E4M3,
+	DSA_TYPE_FP16,
+	DSA_TYPE_BF16,
+	DSA_TYPE_FP32,
+	DSA_TYPE_FP64
+};
+
+enum dsa_cmpute_type {
+	DSA_COMPUTE_RESERVED_0 = 0,
+	DSA_COMPUTE_ADD,
+	DSA_COMPUTE_RESERVED_2,
+	DSA_COMPUTE_AND,
+	DSA_COMPUTE_OR,
+	DSA_COMPUTE_XOR,
+	DSA_COMPUTE_MIN,
+	DSA_COMPUTE_MAX
 };
 
 enum iax_completion_status {
@@ -468,7 +508,8 @@ struct completion_record {
 		uint8_t		result;
 		uint8_t		dif_status;
 	};
-	uint16_t		rsvd;
+	uint8_t                 fault_info;
+	uint8_t                 rsvd;
 	union {
 		uint32_t	bytes_completed;
 		uint32_t	descs_completed;
@@ -548,7 +589,11 @@ struct completion_record {
 			uint64_t	crc64_rsvd3;
 			uint64_t	crc64_result;
 		};
-
+		/* Gather Reduce */
+		struct {
+			uint32_t	sgl_rsvd;
+			uint16_t	sgl_processed;
+		};
 		/* To be compatible with IAX, alloc 64 bytes*/
 		uint8_t		op_specific[48];
 	};
@@ -599,5 +644,18 @@ struct idxd_win_fault {
 #define IDXD_WIN_CREATE		_IOWR(IDXD_TYPE, IDXD_IOC_BASE + 1, struct idxd_win_param)
 #define IDXD_WIN_ATTACH		_IOR(IDXD_TYPE, IDXD_IOC_BASE + 2, struct idxd_win_attach)
 #define IDXD_WIN_FAULT           _IOR(IDXD_TYPE, IDXD_WIN_BASE + 1, struct idxd_win_fault)
+
+
+typedef struct {
+	uint64_t offset;
+} dsa_sgl_format_1_t;
+
+typedef struct {
+	uint32_t index;
+} dsa_sgl_format_2_t;
+
+typedef struct {
+	uint64_t index;
+} dsa_sgl_format_3_t;
 
 #endif

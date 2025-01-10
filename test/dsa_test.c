@@ -1108,12 +1108,12 @@ int main(int argc, char *argv[])
 
 	case DSA_OPCODE_REDUCE:
 	case DSA_OPCODE_REDUCE_DUALCAST:
+	case DSA_OPCODE_GATHER_REDUCE:
 		rc = test_reduce(dsa, buf_size, tflags, opcode, num_desc);
 
 		if (rc != ACCTEST_STATUS_OK)
 			goto error;
 		break;
-//	case DSA_OPCODE_GATHER_REDUCE:
 //	case DSA_OPCODE_GATHER_COPY:
 //	case DSA_OPCODE_SCATTER_COPY:
 //	case DSA_OPCODE_SCATTER_FILL:

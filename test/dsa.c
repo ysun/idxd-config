@@ -19,6 +19,9 @@
 #include "dsa.h"
 #include "dsa_crc32.h"
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 #define DSA_COMPL_RING_SIZE 64
 
 unsigned int dif_blk_arr[] = {512, 520, 4096, 4104};
@@ -501,6 +504,149 @@ int init_reduce(struct task *tsk, int tflags, int opcode, unsigned long xfer_siz
 	return ACCTEST_STATUS_OK;
 }
 
+static uint8_t dsa_get_element_size(enum dsa_data_type data_type) {
+	switch (data_type) {
+	case DSA_TYPE_UINT8_INT8:
+	case DSA_TYPE_FP8_E5M2:
+	case DSA_TYPE_FP8_E4M3:
+		return 1;
+	case DSA_TYPE_UINT16_INT16:
+	case DSA_TYPE_FP16:
+	case DSA_TYPE_BF16:
+		return 2;
+	case DSA_TYPE_UINT32_INT32:
+	case DSA_TYPE_FP32:
+		return 4;
+	case DSA_TYPE_UINT64_INT64:
+	case DSA_TYPE_FP64:
+		return 8;
+	default:
+		return 0;
+	}
+}
+
+void do_elem_compute(void* dst_addr, uint8_t odata_type, void* src_addr, uint8_t idata_type,
+	enum dsa_cmpute_type compute_type, uint16_t	compute_flags, uint32_t element_count,
+	uint32_t stage)
+{
+	// 8.3.21.1 IData Type and OData Type must be either both integer types or
+	// both floating point time, All combinations of integer types for IData Type
+	// and OData Types are supported. For FP Types,
+	// the set of supported conversion is specified by DSACAP1
+	float* p_dst = (float*)dst_addr;
+	float* p_src = (float*)src_addr;
+	for (uint i = 0; i < element_count; i++) {
+		switch (compute_type) {
+		case DSA_COMPUTE_ADD:
+			p_dst[i] += p_src[i];
+			break;
+		case DSA_COMPUTE_AND:
+			p_dst[i] = (uint32_t)p_dst[i] & (uint32_t)p_src[i];
+			break;
+		case DSA_COMPUTE_OR:
+			p_dst[i] = (uint32_t)p_dst[i] ^ (uint32_t)p_src[i];
+			break;
+		case DSA_COMPUTE_XOR:
+			p_dst[i] = (uint32_t)p_dst[i] | (uint32_t)p_src[i];
+			break;
+		case DSA_COMPUTE_MIN:
+			p_dst[i] = MIN(p_dst[i], p_src[i]);
+			break;
+		case DSA_COMPUTE_MAX:
+			p_dst[i] = MAX(p_dst[i], p_src[i]);
+			break;
+		case DSA_COMPUTE_RESERVED_0:
+		case DSA_COMPUTE_RESERVED_2:
+		default:
+			break;
+		}
+	}
+}
+
+void gather_reduce_build_verify_buffer(struct task* tsk)
+{
+	uint sgl_idx = 0;
+	void* sgl_src = 0;
+	uint i = 0;
+
+	void* base_addr = tsk->src1;
+	void* sgl_list_addr = tsk->src2;
+	void* dst_verify_addr = tsk->dst2;
+	uint8_t idata_type_size = dsa_get_element_size(tsk->elemwise_cofig.idata_type);
+	uint8_t odata_type_size = dsa_get_element_size(tsk->elemwise_cofig.odata_type);
+	uint32_t element_count = tsk->elemwise_cofig.compute_elem_cnt;
+	memset(dst_verify_addr, 0, sizeof(odata_type_size) * element_count);
+	for (sgl_idx = 0; sgl_idx < tsk->sgl_config.sgl_size; sgl_idx++) {
+		switch (tsk->sgl_config.sgl_format) {
+		case DSA_SGL_FORMAT_1:
+			sgl_src = base_addr + (((dsa_sgl_format_1_t*)sgl_list_addr)[sgl_idx].offset);
+			break;
+		case DSA_SGL_FORMAT_2:
+			sgl_src = base_addr + (((dsa_sgl_format_2_t*)sgl_list_addr)[sgl_idx].index * element_count * idata_type_size);
+			break;
+		case DSA_SGL_FORMAT_3:
+			sgl_src = base_addr + (((dsa_sgl_format_3_t*)sgl_list_addr)[sgl_idx].index * element_count * idata_type_size);
+			break;
+		default:
+			break;
+		}
+		for (i = 0; i < element_count; i++)
+			do_elem_compute(dst_verify_addr, odata_type_size, sgl_src, idata_type_size,
+				tsk->elemwise_cofig.compute_type, tsk->elemwise_cofig.compute_flags,
+				element_count, i);
+	}
+}
+
+int init_gather_reduce(struct task* tsk, int tflags, int opcode, unsigned long xfer_size)
+{
+	unsigned long force_align = ADDR_ALIGNMENT;
+	uint8_t i_type_size = 0;
+	uint8_t o_type_size = 0;
+	tsk->elemwise_cofig.idata_type = DSA_TYPE_FP32;
+	tsk->elemwise_cofig.odata_type = DSA_TYPE_FP64;
+	tsk->elemwise_cofig.compute_type = DSA_COMPUTE_ADD;
+	tsk->elemwise_cofig.compute_flags = 0;
+	tsk->elemwise_cofig.inter_domain_selector = 0;
+	tsk->sgl_config.sgl_size = 3;
+	tsk->sgl_config.sgl_format = DSA_SGL_FORMAT_1;
+	//TODO: Both the input block size & output block size must less than
+	// Max supported Gather Reduce Block Size in DSACAP0
+	i_type_size = dsa_get_element_size(tsk->elemwise_cofig.idata_type);
+	o_type_size = dsa_get_element_size(tsk->elemwise_cofig.odata_type);
+	if (!i_type_size || !o_type_size)
+		return -EINVAL;
+	tsk->elemwise_cofig.compute_elem_cnt = xfer_size / i_type_size;
+	tsk->xfer_size = tsk->elemwise_cofig.compute_elem_cnt * i_type_size;
+
+	tsk->pattern = 0x0123456789abcdef;
+	tsk->pattern2 = 0xfedcba9876543210;
+	tsk->opcode = opcode;
+	tsk->test_flags = tflags;
+
+
+	tsk->src1 = aligned_alloc(force_align, xfer_size);
+	if (!tsk->src1)
+		return -ENOMEM;
+	memset(tsk->src1, 0xff, xfer_size);
+
+	tsk->src2 = aligned_alloc(force_align, xfer_size);
+	if (!tsk->src2)
+		return -ENOMEM;
+	memset(tsk->src2, 0x11, xfer_size);
+
+	tsk->dst1 = aligned_alloc(PAGE_SIZE, xfer_size);
+	if (!tsk->dst1)
+		return -ENOMEM;
+	memset_pattern(tsk->dst1, tsk->pattern2, xfer_size);
+
+	tsk->dst2 = aligned_alloc(PAGE_SIZE, tsk->elemwise_cofig.compute_elem_cnt * o_type_size);
+	if (!tsk->dst2)
+		return -ENOMEM;
+	memset_pattern(tsk->dst2, tsk->pattern2, xfer_size);
+	gather_reduce_build_verify_buffer(tsk);
+	return ACCTEST_STATUS_OK;
+}
+
 int init_type_conv(struct task *tsk, int tflags, int opcode, unsigned long xfer_size)
 {
 	unsigned long force_align = ADDR_ALIGNMENT;
@@ -596,11 +742,13 @@ int init_task(struct task *tsk, int tflags, int opcode,
 
 	case DSA_OPCODE_REDUCE:
 	case DSA_OPCODE_REDUCE_DUALCAST:
-//	case DSA_OPCODE_GATHER_REDUCE:
 //	case DSA_OPCODE_GATHER_COPY:
 //	case DSA_OPCODE_SCATTER_COPY:
 //	case DSA_OPCODE_SCATTER_FILL:
 		rc = init_reduce(tsk, tflags, opcode, xfer_size);
+		break;
+	case DSA_OPCODE_GATHER_REDUCE:
+		rc = init_gather_reduce(tsk, tflags, opcode, xfer_size);
 		break;
 	case DSA_OPCODE_TYPE_CONV:
 		rc = init_type_conv(tsk, tflags, opcode, xfer_size);
