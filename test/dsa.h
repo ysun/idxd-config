@@ -132,6 +132,9 @@ int dsa_wait_type_conv(struct acctest_context *ctx, struct task *tsk);
 int dsa_reduce_multi_task_nodes(struct acctest_context *ctx);
 int dsa_wait_reduce(struct acctest_context *ctx, struct task *tsk);
 
+int dsa_gather_reduce_multi_task_nodes(struct acctest_context *ctx);
+int dsa_wait_gather_reduce(struct acctest_context *ctx, struct task *tsk);
+
 void dsa_prep_noop(struct task *tsk);
 void dsa_prep_drain(struct task *tsk);
 void dsa_reprep_batch(struct batch_task *btsk, struct acctest_context *ctx);
@@ -162,6 +165,7 @@ void dsa_reprep_dif(struct acctest_context *ctx, struct task *tsk);
 void dsa_prep_cflush(struct task *tsk);
 void dsa_reprep_cflush(struct acctest_context *ctx, struct task *tsk);
 void dsa_prep_reduce(struct acctest_context *ctx, struct task *tsk);
+void dsa_prep_gather_reduce(struct acctest_context *ctx, struct task *tsk);
 void dsa_prep_type_conv(struct acctest_context *ctx, struct task *tsk);
 
 int task_result_verify(struct task *tsk, int mismatch_expected);
@@ -179,6 +183,7 @@ int task_result_verify_dif_tags(struct task *tsk, unsigned long xfer_size);
 int task_result_verify_type_conv(struct task *tsk, int mismatch_expected);
 int task_result_verify_reduce(struct task *tsk, int mismatch_expected);
 int task_result_verify_reduce_dualcast(struct task *tsk, int mismatch_expected);
+int task_result_verify_gather_reduce(struct task *tsk, int mismatch_expected);
 int batch_result_verify(struct batch_task *btsk, int bof, int cp_fault);
 
 int alloc_batch_task(struct acctest_context *ctx, unsigned int task_num, int num_itr);

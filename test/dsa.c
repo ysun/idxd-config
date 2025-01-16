@@ -1632,6 +1632,73 @@ int  dsa_reduce_multi_task_nodes(struct acctest_context *ctx)
 
 	return ret;
 }
+int dsa_wait_gather_reduce(struct acctest_context *ctx, struct task *tsk)
+{
+	struct hw_desc *desc = tsk->desc;
+	struct completion_record *comp = tsk->comp;
+
+	int rc;
+
+again:
+	rc = acctest_wait_on_desc_timeout(comp, ctx, ms_timeout);
+	if (rc < 0) {
+		err("reduce desc timeout\n");
+		return ACCTEST_STATUS_OK;
+	}
+
+	/* re-submit if PAGE_FAULT reported by HW && BOF is off */
+	if (stat_val(comp->status) == DSA_COMP_PAGE_FAULT_NOBOF &&
+		!(desc->flags & IDXD_OP_FLAG_BOF)) {
+		task_result_verify_gather_reduce(tsk, 0);
+		//dsa_reprep_reduce(ctx, tsk);
+		goto again;
+	}
+
+	return ACCTEST_STATUS_OK;
+}
+
+
+int  dsa_gather_reduce_multi_task_nodes(struct acctest_context *ctx)
+{
+	struct task_node *tsk_node = ctx->multi_task_node;
+	int ret = ACCTEST_STATUS_OK;
+
+	while (tsk_node) {
+		tsk_node->tsk->dflags = IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_RCR;
+		if ((tsk_node->tsk->test_flags & TEST_FLAGS_BOF) && ctx->bof)
+			tsk_node->tsk->dflags |= IDXD_OP_FLAG_BOF;
+
+		dsa_prep_gather_reduce(ctx, tsk_node->tsk);
+		tsk_node = tsk_node->next;
+	}
+
+	tsk_node = ctx->multi_task_node;
+	while (tsk_node != NULL) {
+		dbg("src1: 0x%016lx, src2: 0x%016lx\n",
+			*((uint64_t *)tsk_node->tsk->src1),
+			*((uint64_t *)tsk_node->tsk->src2));
+
+		dbg("dst1: 0x%016lx, dst2: 0x%016lx\n",
+			*((uint64_t *)tsk_node->tsk->dst1),
+			*((uint64_t *)tsk_node->tsk->dst2));
+
+		acctest_desc_submit(ctx, tsk_node->tsk->desc);
+		tsk_node = tsk_node->next;
+	}
+	info("Submitted all gather reduce jobs\n");
+
+	tsk_node = ctx->multi_task_node;
+	while (tsk_node != NULL) {
+		ret = dsa_wait_gather_reduce(ctx, tsk_node->tsk);
+		if (ret != ACCTEST_STATUS_OK)
+			info("Desc: %p failed with ret: %d \n", tsk_node->tsk->desc, tsk_node->tsk->comp->status);
+		tsk_node = tsk_node->next;
+	}
+
+	return ret;
+}
+
+
 
 int dsa_wait_type_conv(struct acctest_context *ctx, struct task *tsk)
 {
@@ -1891,7 +1958,6 @@ int task_result_verify(struct task *tsk, int mismatch_expected)
 	case DSA_OPCODE_TYPE_CONV:
 		rc = task_result_verify_type_conv(tsk, mismatch_expected);
 		break;
-//	case DSA_OPCODE_GATHER_REDUCE:
 //	case DSA_OPCODE_GATHER_COPY:
 //	case DSA_OPCODE_SCATTER_COPY:
 //	case DSA_OPCODE_SCATTER_FILL:
@@ -1901,6 +1967,9 @@ int task_result_verify(struct task *tsk, int mismatch_expected)
 		return rc;
 	case DSA_OPCODE_REDUCE_DUALCAST:
 		rc = task_result_verify_reduce_dualcast(tsk, mismatch_expected);
+		return rc;
+	case DSA_OPCODE_GATHER_REDUCE:
+		rc = task_result_verify_gather_reduce(tsk, mismatch_expected);
 		return rc;
 	}
 
@@ -2138,6 +2207,28 @@ int task_result_verify_reduce_dualcast(struct task *tsk, int mismatch_expected)
 
 	return ACCTEST_STATUS_OK;
 }
+int task_result_verify_gather_reduce(struct task *tsk, int mismatch_expected)
+{
+	int rc;
+	unsigned int data_size = (tsk->comp->status == DSA_COMP_SUCCESS) ?
+			 tsk->desc->xfer_size : tsk->comp->bytes_completed;
+
+	if (mismatch_expected)
+		warn("invalid arg mismatch_expected for %d\n", tsk->opcode);
+
+	dbg("src1: 0x%016lx, src2: 0x%016lx\n",
+		*((uint64_t *)tsk->src1), *((uint64_t *)tsk->src2));
+	dbg("dst1: 0x%016lx, dst2: 0x%016lx\n",
+		*((uint64_t *)tsk->dst1), *((uint64_t *)tsk->dst2));
+
+	rc = memcmp((int *)tsk->desc->src1_addr, (int *)tsk->desc->dst1_addr, data_size);
+	if (rc) {
+		err("reduce mismatch, compl rec status: %d\n", tsk->comp->status);
+		return -ENXIO;
+	}
+	return ACCTEST_STATUS_OK;
+}
+
 int task_result_verify_type_conv(struct task *tsk, int mismatch_expected)
 {
 	int rc;
