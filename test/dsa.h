@@ -212,4 +212,10 @@ int dsa_wait_batch(struct batch_task *btsk, struct acctest_context *ctx);
 uint16_t dsa_calculate_crc_t10dif(unsigned char *buffer, size_t len, int flags);
 int get_dif_blksz_flg(unsigned long xfer_size);
 unsigned long get_blks(unsigned long xfer_size);
+
+void do_elem_compute(void* dst_addr, uint8_t odata_type, void* src_addr, uint8_t idata_type,
+	enum dsa_cmpute_type compute_type, uint16_t compute_flags, uint32_t element_count,
+	uint32_t stage);
+void gather_reduce_build_verify_buffer(struct task* tsk);
+
 #endif
