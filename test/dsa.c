@@ -579,13 +579,13 @@ void gather_reduce_build_verify_buffer(struct task* tsk)
 	for (sgl_idx = 0; sgl_idx < tsk->sgl_config.sgl_size; sgl_idx++) {
 		switch (tsk->sgl_config.sgl_format) {
 		case DSA_SGL_FORMAT_1:
-			sgl_src = base_addr + (((dsa_sgl_format_1_t*)sgl_list_addr)[sgl_idx].offset);
+			sgl_src = (char*)base_addr + (((dsa_sgl_format_1_t*)sgl_list_addr)[sgl_idx].offset);
 			break;
 		case DSA_SGL_FORMAT_2:
-			sgl_src = base_addr + (((dsa_sgl_format_2_t*)sgl_list_addr)[sgl_idx].index * element_count * idata_type_size);
+			sgl_src = (char*)base_addr + (((dsa_sgl_format_2_t*)sgl_list_addr)[sgl_idx].index * element_count * idata_type_size);
 			break;
 		case DSA_SGL_FORMAT_3:
-			sgl_src = base_addr + (((dsa_sgl_format_3_t*)sgl_list_addr)[sgl_idx].index * element_count * idata_type_size);
+			sgl_src = (char*)base_addr + (((dsa_sgl_format_3_t*)sgl_list_addr)[sgl_idx].index * element_count * idata_type_size);
 			break;
 		default:
 			break;
@@ -599,7 +599,6 @@ void gather_reduce_build_verify_buffer(struct task* tsk)
 
 int init_gather_reduce(struct task* tsk, int tflags, int opcode, unsigned long xfer_size)
 {
-	unsigned long force_align = ADDR_ALIGNMENT;
 	uint8_t i_type_size = 0;
 	uint8_t o_type_size = 0;
 	uint8_t elem_cnt = 8;
@@ -637,8 +636,8 @@ int init_gather_reduce(struct task* tsk, int tflags, int opcode, unsigned long x
 		return -ENOMEM;
 
 	for(int i = 0; i < sgl_size; i++) {
-		memset(tsk->src1 + i * 8, i, 1);
-		memset(tsk->src2 + i * i_type_size * elem_cnt, 1 << i, i_type_size * elem_cnt);
+		memset((char*)tsk->src1 + i * 8, i, 1);
+		memset((char*)tsk->src2 + i * i_type_size * elem_cnt, 1 << i, i_type_size * elem_cnt);
 	}
 
 	tsk->dst1 = aligned_alloc(PAGE_SIZE, o_type_size * elem_cnt);
@@ -1681,7 +1680,7 @@ int  dsa_gather_reduce_multi_task_nodes(struct acctest_context *ctx)
 	while (tsk_node != NULL) {
 		dbg("SGL:\n");
 		for(uint j = 0; j < sgl_size; j++)
-			printf("%02X ", (*((uint64_t*)tsk->src1 + j)));
+			printf("%02lX ", (*((uint64_t*)tsk->src1 + j)));
 		printf("\n");
 
 		dbg("base:\n");
@@ -2228,15 +2227,12 @@ int task_result_verify_gather_reduce(struct task *tsk, int mismatch_expected)
 	uint element_count = tsk->elemwise_cofig.compute_elem_cnt;
 	uint sgl_size = tsk->sgl_config.sgl_size;
 
-	unsigned int data_size = (tsk->comp->status == DSA_COMP_SUCCESS) ?
-			 tsk->desc->xfer_size : tsk->comp->bytes_completed;
-
 	if (mismatch_expected)
 		warn("invalid arg mismatch_expected for %d\n", tsk->opcode);
 
 	dbg("sgl:\n");
 	for(uint j = 0; j < sgl_size; j++)
-		printf("%02X ", (*((uint64_t*)tsk->src1 + j)));
+		printf("%02lX ", (*((uint64_t*)tsk->src1 + j)));
 	printf("\n");
 
 	dbg("base:\n");
