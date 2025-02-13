@@ -850,6 +850,38 @@ void dsa_prep_gather_reduce(struct acctest_context *ctx, struct task *tsk)
 		hw->sgl_fmt, DSA_SGL_FORMAT_1);
 }
 
+void dsa_prep_gather_copy(struct acctest_context *ctx, struct task *tsk)
+{
+	struct hw_desc *hw = tsk->desc;
+
+	memset(hw, 0, sizeof(struct hw_desc));
+	hw->flags = 0xc;
+	hw->rsvd = 0;
+
+	hw->opcode = tsk->opcode;
+	hw->rsvd1 = 0;
+
+	hw->src_sgl_addr = (uint64_t)tsk->src1;
+	hw->dst_addr = (uint64_t)tsk->dst1;
+	hw->sg_element_cnt = tsk->elemwise_cofig.compute_elem_cnt;
+	hw->sg_sgl_size = tsk->sgl_config.sgl_size;
+	hw->base_addr = (uint64_t)tsk->src2;
+	hw->sg_transfer_size = hw->sg_element_cnt * hw->sg_sgl_size * 8;
+
+	hw->sg_data_type = tsk->elemwise_cofig.idata_type;	//0: uint8; 1: uint16; 2: uint32; 3: uint64
+
+	info("preparing descriptor for gather_reduce\n");
+
+	hw->completion_addr = (uint64_t)(tsk->comp);
+	hw->sgl_fmt = DSA_SGL_FORMAT_3; //0: rsv; 1: fmt1
+
+	tsk->comp->status = 0;
+	tsk->desc->completion_addr = (uint64_t)(tsk->comp);
+
+	info("SGL format:%x, should be %x\n",
+		hw->sgl_fmt, DSA_SGL_FORMAT_1);
+}
+
 
 void dsa_prep_reduce(struct acctest_context *ctx, struct task *tsk)
 {

@@ -1016,6 +1016,65 @@ static int test_gather_reduce(struct acctest_context *ctx, size_t buf_size,
 	return rc;
 }
 
+static int test_gather_copy(struct acctest_context *ctx, size_t buf_size,
+		       int tflags, uint32_t opcode, int num_desc)
+
+{
+	struct task_node *tsk_node;
+	long long int itr = num_desc, i = 0;
+	int range = accfg_wq_get_size(ctx->wq);
+	int rc = ACCTEST_STATUS_OK;
+
+	if (ctx->dedicated == ACCFG_WQ_SHARED)
+		range = ctx->threshold;
+	else
+		range = ctx->wq_size;
+
+	//unsigned int xfer_size = buf_size;
+	while (itr > 0 && rc == ACCTEST_STATUS_OK) {
+		i = (itr < range)? itr:range;
+
+		/* Allocate memory to all the task nodes, desc, compl rec*/
+		rc = acctest_alloc_multiple_tasks(ctx, i);
+		if (rc != ACCTEST_STATUS_OK) {
+			err("gather_copy: alloc task failed, rc=%d\n", rc);
+			return rc;
+		}
+
+		/* allocate memory to src and dest buffers and fill in the desc for all the nodes*/
+		tsk_node = ctx->multi_task_node;
+		while (tsk_node) {
+			tsk_node->tsk->xfer_size = buf_size;
+
+			rc = init_task(tsk_node->tsk, tflags, opcode, buf_size);
+			if (rc != ACCTEST_STATUS_OK)
+				return rc;
+
+			tsk_node = tsk_node->next;
+		}
+
+		/* Split dsa_memcpy to push all the descs serially and
+		  * then check for completion records.
+		  * In an iteration, if any descriptor failed,entire iteration wont be stopped
+		  * abruptly. Instead its terminated at the end of iteration*/
+		rc = dsa_gather_copy_multi_task_nodes(ctx);
+
+		if (rc != ACCTEST_STATUS_OK) {
+			err("gather_reduce: failed for the iteration %d\n", itr);
+			return rc;
+		}
+		/* Verification of all the nodes*/
+		tsk_node = ctx->multi_task_node;
+		while (tsk_node != NULL) {
+			rc = task_result_verify(tsk_node->tsk, 0);
+			tsk_node = tsk_node->next;
+		}
+
+		acctest_free_task(ctx);
+		itr = itr-range;
+	} //while for itr
+	return rc;
+}
 
 int main(int argc, char *argv[])
 {
@@ -1180,8 +1239,12 @@ int main(int argc, char *argv[])
 		if (rc != ACCTEST_STATUS_OK)
 			goto error;
 		break;
+	case DSA_OPCODE_GATHER_COPY:
+		rc = test_gather_copy(dsa, buf_size, tflags, opcode, num_desc);
+		if (rc != ACCTEST_STATUS_OK)
+			goto error;
+		break;
 
-//	case DSA_OPCODE_GATHER_COPY:
 //	case DSA_OPCODE_SCATTER_COPY:
 //	case DSA_OPCODE_SCATTER_FILL:
 
