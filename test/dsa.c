@@ -648,6 +648,89 @@ int init_gather_reduce(struct task* tsk, int tflags, int opcode, unsigned long x
 	return ACCTEST_STATUS_OK;
 }
 
+void gather_copy_build_verify_buffer(struct task* tsk)
+{
+	uint sgl_idx = 0;
+	void* sgl_src = 0;
+	uint i = 0;
+
+	void* base_addr = tsk->src1;
+	void* sgl_list_addr = tsk->src2;
+	void* dst_verify_addr = tsk->dst2;
+	uint8_t idata_type_size = dsa_get_element_size(tsk->elemwise_cofig.idata_type);
+	uint8_t odata_type_size = dsa_get_element_size(tsk->elemwise_cofig.odata_type);
+	uint32_t element_count = tsk->elemwise_cofig.compute_elem_cnt;
+	memset(dst_verify_addr, 0, sizeof(odata_type_size) * element_count);
+	for (sgl_idx = 0; sgl_idx < tsk->sgl_config.sgl_size; sgl_idx++) {
+		switch (tsk->sgl_config.sgl_format) {
+		case DSA_SGL_FORMAT_1:
+			sgl_src = (char*)base_addr + (((dsa_sgl_format_1_t*)sgl_list_addr)[sgl_idx].offset);
+			break;
+		case DSA_SGL_FORMAT_2:
+			sgl_src = (char*)base_addr + (((dsa_sgl_format_2_t*)sgl_list_addr)[sgl_idx].index * element_count * idata_type_size);
+			break;
+		case DSA_SGL_FORMAT_3:
+			sgl_src = (char*)base_addr + (((dsa_sgl_format_3_t*)sgl_list_addr)[sgl_idx].index * element_count * idata_type_size);
+			break;
+		default:
+			break;
+		}
+		for (i = 0; i < element_count; i++)
+			do_elem_compute(dst_verify_addr, odata_type_size, sgl_src, idata_type_size,
+				tsk->elemwise_cofig.compute_type, tsk->elemwise_cofig.compute_flags,
+				element_count, i);
+	}
+}
+
+int init_gather_copy(struct task* tsk, int tflags, int opcode, unsigned long xfer_size)
+{
+	uint8_t i_type_size = 0;
+	uint8_t elem_cnt = 8;
+	uint8_t sgl_size = 8;
+	uint32_t transfer_size = 0;
+
+	tsk->elemwise_cofig.idata_type = DSA_TYPE_UINT64_INT64;
+	tsk->elemwise_cofig.compute_elem_cnt = elem_cnt;
+	tsk->elemwise_cofig.inter_domain_selector = 0;
+	tsk->sgl_config.sgl_size = sgl_size;
+	tsk->sgl_config.sgl_format = DSA_SGL_FORMAT_3;
+	//TODO: Both the input block size & output block size must less than
+	// Max supported Gather Reduce Block Size in DSACAP0
+	i_type_size = dsa_get_element_size(tsk->elemwise_cofig.idata_type);
+	if (!i_type_size )
+		return -EINVAL;
+
+	transfer_size = i_type_size * elem_cnt * sgl_size;
+	tsk->xfer_size = xfer_size;
+
+	tsk->pattern = 0x0123456789abcdef;
+	tsk->pattern2 = 0xfedcba9876543210;
+	tsk->opcode = opcode;
+	tsk->test_flags = tflags;
+
+	tsk->src1 = aligned_alloc(PAGE_SIZE, 8 * sgl_size); //For SGL
+	if (!tsk->src1)
+		return -ENOMEM;
+
+	//for base
+	tsk->src2 = aligned_alloc(PAGE_SIZE, transfer_size);
+	if (!tsk->src1)
+		return -ENOMEM;
+
+	for(int i = 0; i < sgl_size; i++) {
+		memset((char*)tsk->src1 + i * 8, i, 1);
+	}
+
+	tsk->dst1 = aligned_alloc(PAGE_SIZE, transfer_size);
+	if (!tsk->dst1)
+		return -ENOMEM;
+	memset_pattern(tsk->dst1, tsk->pattern2, transfer_size);
+	memset_pattern(tsk->src2, tsk->pattern, transfer_size);
+
+	return ACCTEST_STATUS_OK;
+}
+
+
 int init_type_conv(struct task *tsk, int tflags, int opcode, unsigned long xfer_size)
 {
 	unsigned long force_align = ADDR_ALIGNMENT;
@@ -743,7 +826,6 @@ int init_task(struct task *tsk, int tflags, int opcode,
 
 	case DSA_OPCODE_REDUCE:
 	case DSA_OPCODE_REDUCE_DUALCAST:
-//	case DSA_OPCODE_GATHER_COPY:
 //	case DSA_OPCODE_SCATTER_COPY:
 //	case DSA_OPCODE_SCATTER_FILL:
 		rc = init_reduce(tsk, tflags, opcode, xfer_size);
@@ -751,6 +833,10 @@ int init_task(struct task *tsk, int tflags, int opcode,
 	case DSA_OPCODE_GATHER_REDUCE:
 		rc = init_gather_reduce(tsk, tflags, opcode, xfer_size);
 		break;
+	case DSA_OPCODE_GATHER_COPY:
+		rc = init_gather_copy(tsk, tflags, opcode, xfer_size);
+		break;
+
 	case DSA_OPCODE_TYPE_CONV:
 		rc = init_type_conv(tsk, tflags, opcode, xfer_size);
 		break;
@@ -1712,6 +1798,87 @@ int  dsa_gather_reduce_multi_task_nodes(struct acctest_context *ctx)
 	return ret;
 }
 
+int dsa_wait_gather_copy(struct acctest_context *ctx, struct task *tsk)
+{
+	struct hw_desc *desc = tsk->desc;
+	struct completion_record *comp = tsk->comp;
+
+	int rc;
+
+again:
+	rc = acctest_wait_on_desc_timeout(comp, ctx, ms_timeout);
+	if (rc < 0) {
+		err("gather copy desc timeout\n");
+		return ACCTEST_STATUS_OK;
+	}
+
+	/* re-submit if PAGE_FAULT reported by HW && BOF is off */
+	if (stat_val(comp->status) == DSA_COMP_PAGE_FAULT_NOBOF &&
+		!(desc->flags & IDXD_OP_FLAG_BOF)) {
+		task_result_verify_gather_copy(tsk, 0);
+		goto again;
+	}
+
+	return ACCTEST_STATUS_OK;
+}
+
+int  dsa_gather_copy_multi_task_nodes(struct acctest_context *ctx)
+{
+	struct task_node *tsk_node = ctx->multi_task_node;
+	struct task *tsk = tsk_node->tsk;
+
+	int ret = ACCTEST_STATUS_OK;
+	uint element_count = tsk->elemwise_cofig.compute_elem_cnt;
+	uint sgl_size = tsk->sgl_config.sgl_size;
+
+	while (tsk_node) {
+		tsk_node->tsk->dflags = IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_RCR;
+		if ((tsk_node->tsk->test_flags & TEST_FLAGS_BOF) && ctx->bof)
+			tsk_node->tsk->dflags |= IDXD_OP_FLAG_BOF;
+
+		dsa_prep_gather_copy(ctx, tsk_node->tsk);
+		tsk_node = tsk_node->next;
+	}
+
+	tsk_node = ctx->multi_task_node;
+	while (tsk_node != NULL) {
+		dbg("SGL:\n");
+		for(uint j = 0; j < sgl_size; j++)
+			printf("%02lX ", (*((uint64_t*)tsk->src1 + j)));
+		printf("\n");
+
+		dbg("base:\n");
+		for(uint i = 0; i < sgl_size; i++)  {
+			for(uint j = 0; j < element_count; j++)
+				printf("%02X ", (*((unsigned char*)tsk->src2 + i * element_count * 1 + j * 1)));
+			printf("\n");
+		}
+
+		dbg("dst1:\n");
+		for(uint i = 0; i < sgl_size; i++)  {
+			for(uint j = 0; j < element_count; j++)
+				printf("%02X ", (*((unsigned char*)tsk->dst1 + i * element_count + j)));
+			printf("\n");
+		}
+
+		acctest_desc_submit(ctx, tsk_node->tsk->desc);
+
+		tsk_node = tsk_node->next;
+	}
+	info("Submitted all gather reduce jobs\n");
+
+	tsk_node = ctx->multi_task_node;
+	while (tsk_node != NULL) {
+		ret = dsa_wait_gather_copy(ctx, tsk_node->tsk);
+		if (ret != ACCTEST_STATUS_OK)
+			info("Desc: %p failed with ret: %d \n", tsk_node->tsk->desc, tsk_node->tsk->comp->status);
+		tsk_node = tsk_node->next;
+	}
+
+	return ret;
+}
+
+
 
 
 int dsa_wait_type_conv(struct acctest_context *ctx, struct task *tsk)
@@ -1972,7 +2139,6 @@ int task_result_verify(struct task *tsk, int mismatch_expected)
 	case DSA_OPCODE_TYPE_CONV:
 		rc = task_result_verify_type_conv(tsk, mismatch_expected);
 		break;
-//	case DSA_OPCODE_GATHER_COPY:
 //	case DSA_OPCODE_SCATTER_COPY:
 //	case DSA_OPCODE_SCATTER_FILL:
 
@@ -1984,6 +2150,9 @@ int task_result_verify(struct task *tsk, int mismatch_expected)
 		return rc;
 	case DSA_OPCODE_GATHER_REDUCE:
 		rc = task_result_verify_gather_reduce(tsk, mismatch_expected);
+		return rc;
+	case DSA_OPCODE_GATHER_COPY:
+		rc = task_result_verify_gather_copy(tsk, mismatch_expected);
 		return rc;
 	}
 
@@ -2252,6 +2421,43 @@ int task_result_verify_gather_reduce(struct task *tsk, int mismatch_expected)
 			err("result mismatch:%d\n", *((unsigned char*)tsk->dst1 + i));
 			rc = -ENXIO;
 			break;
+		}
+	}
+
+	return rc;
+}
+int task_result_verify_gather_copy(struct task *tsk, int mismatch_expected)
+{
+	int rc = ACCTEST_STATUS_OK;
+	uint element_count = tsk->elemwise_cofig.compute_elem_cnt;
+	uint sgl_size = tsk->sgl_config.sgl_size;
+
+	if (mismatch_expected)
+		warn("invalid arg mismatch_expected for %d\n", tsk->opcode);
+
+	dbg("sgl:\n");
+	for(uint j = 0; j < sgl_size; j++)
+		printf("%02lX ", (*((uint64_t*)tsk->src1 + j)));
+	printf("\n");
+
+	dbg("base:\n");
+	for(uint i = 0; i < sgl_size; i++) {
+		for(uint j = 0; j < element_count; j++)
+			printf("%02X ", (*((unsigned char*)tsk->src2 + i * element_count * 1 + j * 1)));
+		printf("\n");
+	}
+
+	dbg("dst1:\n");
+	for(uint i = 0; i < sgl_size; i++) {
+		for(uint j = 0; j < element_count; j++)
+			printf("%02X ", (*((unsigned char*)tsk->dst1 + i * element_count + j)));
+		printf("\n");
+	}
+
+	for(uint i = 0; i < element_count * sgl_size; i++ ) {
+		if (*((unsigned char*)tsk->dst1 + i) != *((unsigned char*)tsk->src2 + i)) {
+			err("result mismatch:%d\n", i);
+			rc = -ENXIO;
 		}
 	}
 
