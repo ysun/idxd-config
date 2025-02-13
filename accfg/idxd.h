@@ -244,6 +244,7 @@ struct hw_desc {
 	uint64_t	completion_addr;
 	union {
 		uint64_t	src_addr;
+		uint64_t	src_sgl_addr;
 		uint64_t	src1_addr;
 		uint64_t	rdback_addr;
 		uint64_t	pattern;
@@ -254,6 +255,7 @@ struct hw_desc {
 	};
 	union {
 		uint64_t	dst_addr;
+		uint64_t	dst_sgl_addr;
 		uint64_t	rdback_addr2;
 		uint64_t	src2_addr;
 		uint64_t	comp_pattern;
@@ -264,6 +266,7 @@ struct hw_desc {
 		uint32_t	desc_count;
 		uint32_t	region_size;
 		uint32_t	element_count;
+		uint32_t	sg_transfer_size;
 	};
 	uint16_t	int_handle;
 	union {
@@ -273,6 +276,7 @@ struct hw_desc {
 		uint16_t        iax_crc64_flags;
 		uint16_t        iax_cipher_flags;
 	};
+	//Bytes 40
 	union {
 		uint8_t		expected_res;
 		/* create delta record */
@@ -459,9 +463,26 @@ struct hw_desc {
 					uint16_t	resvd46;
 					uint64_t	base_addr;
 				};
+				/* Scatter-Gather */
+				struct {
+					uint32_t	sg_element_cnt;
+					uint16_t	sg_sgl_size;
+					uint16_t	sg_resvd46;
+					uint64_t	sg_base_addr;
+				};
 			};
-			uint8_t        iData:4;
-			uint8_t        oData:4;
+			union {
+				//Gather-Reduce
+				struct {
+					uint8_t        iData:4;
+					uint8_t        oData:4;
+				};
+				//Scatter-Gather
+				struct {
+					uint8_t        sg_data_type:4;
+					uint8_t        rev56:4;
+				};
+			};
 			uint8_t        compute_type:4;
 			uint8_t        compute_flags:4;
 			uint8_t        compute_flags2;

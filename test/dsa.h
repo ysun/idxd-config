@@ -77,6 +77,7 @@ int init_cflush(struct task *tsk, int tflags, int opcode, unsigned long xfer_siz
 int init_type_conv(struct task *tsk, int tflags, int opcode, unsigned long xfer_size);
 int init_reduce(struct task *tsk, int tflags, int opcode, unsigned long xfer_size);
 int init_gather_reduce(struct task* tsk, int tflags, int opcode, unsigned long xfer_size);
+int init_gather_copy(struct task* tsk, int tflags, int opcode, unsigned long xfer_size);
 int init_reduce_duel(struct task *tsk, int tflags, int opcode, unsigned long xfer_size);
 int init_task(struct task *tsk, int tflags, int opcode,
 	      unsigned long xfer_size);
@@ -135,6 +136,9 @@ int dsa_wait_reduce(struct acctest_context *ctx, struct task *tsk);
 int dsa_gather_reduce_multi_task_nodes(struct acctest_context *ctx);
 int dsa_wait_gather_reduce(struct acctest_context *ctx, struct task *tsk);
 
+int dsa_gather_copy_multi_task_nodes(struct acctest_context *ctx);
+int dsa_wait_gather_copy(struct acctest_context *ctx, struct task *tsk);
+
 void dsa_prep_noop(struct task *tsk);
 void dsa_prep_drain(struct task *tsk);
 void dsa_reprep_batch(struct batch_task *btsk, struct acctest_context *ctx);
@@ -166,6 +170,7 @@ void dsa_prep_cflush(struct task *tsk);
 void dsa_reprep_cflush(struct acctest_context *ctx, struct task *tsk);
 void dsa_prep_reduce(struct acctest_context *ctx, struct task *tsk);
 void dsa_prep_gather_reduce(struct acctest_context *ctx, struct task *tsk);
+void dsa_prep_gather_copy(struct acctest_context *ctx, struct task *tsk);
 void dsa_prep_type_conv(struct acctest_context *ctx, struct task *tsk);
 
 int task_result_verify(struct task *tsk, int mismatch_expected);
@@ -184,6 +189,7 @@ int task_result_verify_type_conv(struct task *tsk, int mismatch_expected);
 int task_result_verify_reduce(struct task *tsk, int mismatch_expected);
 int task_result_verify_reduce_dualcast(struct task *tsk, int mismatch_expected);
 int task_result_verify_gather_reduce(struct task *tsk, int mismatch_expected);
+int task_result_verify_gather_copy(struct task *tsk, int mismatch_expected);
 int batch_result_verify(struct batch_task *btsk, int bof, int cp_fault);
 
 int alloc_batch_task(struct acctest_context *ctx, unsigned int task_num, int num_itr);
@@ -217,5 +223,6 @@ void do_elem_compute(void* dst_addr, uint8_t odata_type, void* src_addr, uint8_t
 	enum dsa_cmpute_type compute_type, uint16_t compute_flags, uint32_t element_count,
 	uint32_t stage);
 void gather_reduce_build_verify_buffer(struct task* tsk);
+void gather_copy_build_verify_buffer(struct task* tsk);
 
 #endif
