@@ -861,11 +861,18 @@ void dsa_prep_gather_copy(struct acctest_context *ctx, struct task *tsk)
 	hw->opcode = tsk->opcode;
 	hw->rsvd1 = 0;
 
-	hw->src_sgl_addr = (uint64_t)tsk->src1;
-	hw->dst_addr = (uint64_t)tsk->dst1;
+	if (tsk->opcode == DSA_OPCODE_GATHER_COPY) {
+		hw->src_sgl_addr = (uint64_t)tsk->src1;
+		hw->dst_addr = (uint64_t)tsk->dst1;
+		hw->base_addr = (uint64_t)tsk->src2;
+	} else if (tsk->opcode == DSA_OPCODE_SCATTER_COPY) {
+		hw->dst_sgl_addr = (uint64_t)tsk->src1;
+		hw->src_addr = (uint64_t)tsk->src2;
+		hw->base_addr = (uint64_t)tsk->dst1;
+	}
+
 	hw->sg_element_cnt = tsk->elemwise_cofig.compute_elem_cnt;
 	hw->sg_sgl_size = tsk->sgl_config.sgl_size;
-	hw->base_addr = (uint64_t)tsk->src2;
 	hw->sg_transfer_size = hw->sg_element_cnt * hw->sg_sgl_size * 8;
 
 	hw->sg_data_type = tsk->elemwise_cofig.idata_type;	//0: uint8; 1: uint16; 2: uint32; 3: uint64
