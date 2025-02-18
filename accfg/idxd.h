@@ -514,8 +514,8 @@ struct hw_desc {
 				uint32_t	rsvd60;
 			};
 
-			uint8_t		op_specific[24];
 		};
+		uint8_t		op_specific[24];
 	};
 } __attribute__((packed));
 
