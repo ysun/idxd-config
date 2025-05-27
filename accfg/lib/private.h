@@ -55,6 +55,9 @@ struct accfg_device {
 	uint64_t opcap;
 	uint64_t gencap;
 	int pasid_enabled;
+	uint64_t dsacap0;
+	uint64_t dsacap1;
+	uint64_t dsacap2;
 };
 
 struct accfg_group {

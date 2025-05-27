@@ -214,6 +214,28 @@ static long accfg_get_param_long(struct accfg_ctx *ctx, int dfd, char *name)
 	return strtol(buf, NULL, 0);
 }
 
+static uint64_t accfg_get_param_raw(
+		struct accfg_ctx *ctx, int dfd, char *name)
+{
+	int fd = openat(dfd, name, O_RDONLY);
+	char buf[MAX_PARAM_LEN];
+	int n;
+
+	if (fd == -1)
+		return -errno;
+
+	n = read(fd, buf, MAX_PARAM_LEN - 1);
+	close(fd);
+	if (n <= 0)
+		return -ENXIO;
+	if (buf[n - 1] == '\n')
+		buf[n - 1] = '\0';
+	else
+		buf[n] = '\0';
+
+	return strtoull(buf, NULL, 0);
+}
+
 static uint64_t accfg_get_param_unsigned_llong(
 		struct accfg_ctx *ctx, int dfd, char *name)
 {
@@ -1104,6 +1126,39 @@ ACCFG_EXPORT int accfg_device_get_op_cap(struct accfg_device *device,
 			&op_cap->bits[2], &op_cap->bits[3],
 			&op_cap->bits[4], &op_cap->bits[5],
 			&op_cap->bits[6], &op_cap->bits[7]);
+
+	free(oc);
+
+	if (rc != 8)
+		return errno ? -errno : -EIO;
+
+	return 0;
+}
+
+ACCFG_EXPORT int accfg_device_get_dsa_cap(struct accfg_device *device,
+		union dsacap *dsa_caps)
+{
+	char *oc;
+	int dfd;
+	int rc;
+	struct accfg_ctx *ctx;
+
+	if (!device)
+		return -EINVAL;
+
+	ctx = accfg_device_get_ctx(device);
+	dfd = open(device->device_path, O_PATH);
+	if (dfd < 0)
+		return -errno;
+	oc = accfg_get_param_str(ctx, dfd, "dsacap");
+	close(dfd);
+	if (!oc)
+		return -EIO;
+	rc = sscanf(oc, "%" SCNx32 ",%" SCNx32 ",%" SCNx32 ",%" SCNx32
+			",%" SCNx32 ",%" SCNx32,
+			&dsa_caps->bits[0], &dsa_caps->bits[1],
+			&dsa_caps->bits[2], &dsa_caps->bits[3],
+			&dsa_caps->bits[4], &dsa_caps->bits[5]);
 
 	free(oc);
 

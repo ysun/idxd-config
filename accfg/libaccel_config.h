@@ -22,6 +22,7 @@ extern "C" {
 
 #define MAX_DEV_LEN 64
 #define MAX_BUF_LEN 128
+#define MAX_DSACAP_LEN 192
 #define MAX_PARAM_LEN 4096
 #define TRAFFIC_CLASS_LIMIT 8
 #define WQ_PRIORITY_LIMIT 15
@@ -81,6 +82,55 @@ struct accfg_error {
 struct accfg_op_cap {
 	uint32_t bits[8];
 };
+
+union dsacap0_reg {
+	struct {
+		uint64_t max_sgl_shift:4;
+		uint64_t max_gr_block_shift:4;
+		uint64_t ops_inter_domain:7;
+		uint64_t rsvd1:17;
+		uint64_t sgl_formats:16;
+		uint64_t max_sg_process:8;
+		uint64_t rsvd2:8;
+	};
+	uint64_t bits;
+};
+
+union dsacap1_reg {
+	struct {
+		uint64_t data_types:16;
+		uint64_t fp_type_up_conv:16;
+		uint64_t fp_type_down_conv:16;
+		uint64_t compute_ops:16;
+	};
+	uint64_t bits;
+};
+
+union dsacap2_reg {
+	struct {
+		uint64_t src_operand_negation:1;
+		uint64_t rsvd1:1;
+		uint64_t flush_to_zero:1;
+		uint64_t denormal_as_zero:1;
+		uint64_t rsvd2:3;
+		uint64_t signed_int:1;
+		uint64_t saturate_int_ret:1;
+		uint64_t rsvd3:3;
+		uint64_t rounding_type:8;
+		uint64_t rsvd4:44;
+	};
+	uint64_t bits;
+};
+
+union dsacap {
+	struct {
+		union dsacap0_reg cap0;
+		union dsacap1_reg cap1;
+		union dsacap2_reg cap2;
+	};
+	uint32_t bits[6];
+};
+
 
 struct accfg_op_config {
 	uint32_t bits[8];
@@ -188,6 +238,8 @@ uint64_t accfg_device_get_max_transfer_size(struct accfg_device *device);
 unsigned int accfg_device_get_compl_size(struct accfg_device *device);
 int accfg_device_get_op_cap(struct accfg_device *device,
 		struct accfg_op_cap *op_cap);
+int accfg_device_get_dsa_cap(struct accfg_device *device,
+		union dsacap *dsa_cap);
 uint64_t accfg_device_get_gen_cap(struct accfg_device *device);
 int accfg_device_get_iaa_cap(struct accfg_device *device, uint64_t *iaa_cap);
 unsigned int accfg_device_get_configurable(struct accfg_device *device);

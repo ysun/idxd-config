@@ -90,6 +90,87 @@ struct map_op_name dsa_op_code_name[] = {
        {-1, NULL}
 };
 
+struct capfield {
+    const char *name;
+    uint16_t cap_offset;
+    uint8_t bit_offset;
+    uint8_t bit_width;
+    uint16_t version;
+};
+
+static struct capfield dsafields[] = {
+    { "minor version", 0x00, 0, 8, 0 },
+    { "major version", 0x00, 8, 8, 0 },
+    { "block on fault support", 0x10, 0, 1, 0 },
+    { "overlapping copy support", 0x10, 1, 1, 0 },
+    { "cache control support", 0x10, 2, 1, 0 },
+    { "command capabilities support", 0x10, 4, 1, 0 },
+    { "durable write support", 0x10, 5, 1, 0 },
+    { "inter domain support", 0x10, 6, 1, 0 },
+    { "translation fetch stride support", 0x10, 7, 1, 0x200 },
+    { "destination readback support", 0x10, 8, 1, 0 },
+    { "drain descriptor readback address support", 0x10, 9, 1, 0 },
+    { "fill16 support", 0x10, 10, 1, 0 },
+    { "crc64 support", 0x10, 11, 1, 0 },
+    { "completion record fault info support", 0x10, 12, 1, 0 },
+    { "event log support", 0x10, 13, 2, 0 },
+    { "batch continuation support", 0x10, 15, 1, 0 },
+    { "maximum supported transfer size", 0x10, 16, 5, 0 },
+    { "maximum supported batch size", 0x10, 21, 4, 0 },
+    { "interrupt message storage size", 0x10, 25, 6, 0 },
+    { "configuration support", 0x10, 31, 1, 0 },
+    { "event log overflow support", 0x10, 32, 1, 0x200 },
+    { "batch1 support", 0x10, 52, 1, 0 },
+    { "strict ordering limitation for memory destinations", 0x10, 53, 1, 0 },
+    { "strict ordering limitation for peer destinations", 0x10, 54, 1, 0 },
+    { "total wq size", 0x20, 0, 16, 0 },
+    { "number of wqs", 0x20, 16, 8, 0 },
+    { "wqcfg size", 0x20, 24, 4, 0 },
+    { "shared mode support", 0x20, 48, 1, 0 },
+    { "dedicated mode support", 0x20, 49, 1, 0 },
+    { "wq ats support", 0x20, 50, 1, 0 },
+    { "wq priority support", 0x20, 51, 1, 0 },
+    { "wq occupancy support", 0x20, 52, 1, 0 },
+    { "wq occupancy interrupt support", 0x20, 53, 1, 0 },
+    { "wq operations configuration support", 0x20, 54, 1, 0 },
+    { "wq prs support", 0x20, 55, 1, 0 },
+    { "number of groups", 0x30, 0, 8, 0 },
+    { "total read buffers", 0x30, 8, 8, 0 },
+    { "read buffer controls support", 0x30, 16, 1, 0 },
+    { "global read buffer limit support", 0x30, 17, 1, 0 },
+    { "descriptors in progress limit support", 0x30, 18, 1, 0 },
+    { "bandwidth limit support", 0x30, 19, 1, 0 },
+    { "number of engines", 0x38, 0, 8, 0 },
+    { "maximum work descriptors in progress", 0x38, 8, 8, 0x200 },
+    { "maximum batch descriptors in progress", 0x38, 16, 8, 0x200 },
+    { "group configuration offset", 0x60, 0, 16, 0 },
+    { "wq configuration offset", 0x60, 16, 16, 0 },
+    { "msi-x permissions offset", 0x60, 32, 16, 0 },
+    { "ims offset", 0x60, 48, 16, 0 },
+    { "perfmon offset", 0x60, 64, 16, 0 },
+    { "inter domain permissions table offset", 0x60, 80, 16, 0x200 },
+    { "inter domain permissions table entry type support", 0x100, 0, 2, 0x200 },
+    { "inter domain permissions table size", 0x100, 8, 16, 0x200 },
+    { "offset mode support", 0x100, 24, 1, 0x200 },
+    { "update window suppress drain support", 0x100, 25, 1, 0x200 },
+    { "idpte size", 0x100, 26, 2, 0x200 },
+    { "maximum supported sgl size", 0x180, 0, 4, 0x300 },
+    { "maximum supported gather reduce block size", 0x180, 4, 4, 0x300 },
+    { "operations with inter domain support", 0x180, 8, 8, 0x300 },
+    { "sgl formats supported", 0x180, 32, 16, 0x300 },
+    { "maximum scatter gather descriptors in progress", 0x180, 48, 8, 0x300 },
+    { "data types supported", 0x180, 64, 16, 0x300 },
+    { "floating point data type up conversion support", 0x180, 80, 16, 0x300 },
+    { "floating point data type down conversion support", 0x180, 96, 16, 0x300 },
+    { "compute operations supported", 0x180, 112, 16, 0x300 },
+    { "source operand negation support", 0x180, 128, 1, 0x300 },
+    { "flush to zero support", 0x180, 130, 1, 0x300 },
+    { "denormal as zero support", 0x180, 131, 1, 0x300 },
+    { "signed integer support", 0x180, 135, 1, 0x300 },
+    { "saturate integer result support", 0x180, 136, 1, 0x300 },
+    { "rounding type support", 0x180, 140, 8, 0x300 },
+};
+
 
 static const char* get_op_name(struct map_op_name *code_name, int op_code)
 {
@@ -788,6 +869,8 @@ int cmd_info(int argc, const char **argv, void *ctx)
 	struct map_op_name *cur_op_name = NULL;
 	struct accfg_device *device;
 	struct accfg_op_cap op_cap;
+	union dsacap dsa_caps;
+
 	bool verbose = false;
 	const char *dev_name;
 	const char *op_name;
@@ -820,6 +903,14 @@ int cmd_info(int argc, const char **argv, void *ctx)
 		for (j = 0; j < BITMAP_SIZE; j++)
 			printf("%08x,", op_cap.bits[j]);
 		printf("\b \n");
+
+		if (strstr(dev_name, "dsa") != NULL) {
+			printf("dsa3.0:\t");
+			rc = accfg_device_get_dsa_cap(device, &dsa_caps);
+			for (j = 0; j < 6; j++)
+				printf("%08x,", dsa_caps.bits[j]);
+			printf("\b \n");
+		}
 
 		if (!verbose)
 			continue;
