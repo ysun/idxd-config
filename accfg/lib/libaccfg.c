@@ -214,28 +214,6 @@ static long accfg_get_param_long(struct accfg_ctx *ctx, int dfd, char *name)
 	return strtol(buf, NULL, 0);
 }
 
-static uint64_t accfg_get_param_raw(
-		struct accfg_ctx *ctx, int dfd, char *name)
-{
-	int fd = openat(dfd, name, O_RDONLY);
-	char buf[MAX_PARAM_LEN];
-	int n;
-
-	if (fd == -1)
-		return -errno;
-
-	n = read(fd, buf, MAX_PARAM_LEN - 1);
-	close(fd);
-	if (n <= 0)
-		return -ENXIO;
-	if (buf[n - 1] == '\n')
-		buf[n - 1] = '\0';
-	else
-		buf[n] = '\0';
-
-	return strtoull(buf, NULL, 0);
-}
-
 static uint64_t accfg_get_param_unsigned_llong(
 		struct accfg_ctx *ctx, int dfd, char *name)
 {

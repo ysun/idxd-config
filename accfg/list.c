@@ -16,6 +16,8 @@
 #include <accfg.h>
 #include <string.h>
 
+#define array_size(a) (sizeof (a) / sizeof (a)[0])
+
 static struct util_filter_params util_param;
 static struct {
 	bool devices;
@@ -91,11 +93,11 @@ struct map_op_name dsa_op_code_name[] = {
 };
 
 struct capfield {
-    const char *name;
-    uint16_t cap_offset;
-    uint8_t bit_offset;
-    uint8_t bit_width;
-    uint16_t version;
+	const char *name;
+	uint16_t cap_offset;
+	uint8_t bit_offset;
+	uint8_t bit_width;
+	uint16_t version;
 };
 
 static struct capfield dsafields[] = {
@@ -169,6 +171,15 @@ static struct capfield dsafields[] = {
     { "signed integer support", 0x180, 135, 1, 0x300 },
     { "saturate integer result support", 0x180, 136, 1, 0x300 },
     { "rounding type support", 0x180, 140, 8, 0x300 },
+};
+
+struct capability {
+    const char *name;
+    uint16_t offset;
+    uint8_t size;
+    uint8_t flags;
+    uint16_t version;
+    uint64_t value[4];
 };
 
 
@@ -864,6 +875,40 @@ int cmd_list(int argc, const char **argv, void *ctx)
 	return 0;
 }
 
+static void print_field(const struct capfield *field)
+{
+	const struct capability cap = {
+		.name = "dsacap",    // const char*
+		.offset = 0x180,     // uint16_t
+		.size = 24,          // uint8_t
+		.flags = 1,          // uint8_t
+		.version = 0x300,    // uint16_t
+		.value = {0}         // uint64_t[4] (初始化为全0)
+	};
+	int w = 0;
+	uint64_t val = cap.value[field->bit_offset / 64];
+	unsigned shift = field->bit_offset % 64;
+
+	val = val >> shift & ((1u << field->bit_width) - 1);
+	w = (field->bit_width + 3) / 4;
+	printf("%s: %0*lx\n", field->name, w, val);
+}
+
+static int print_dsa_field_by_name(void)
+{
+	struct field_list {
+		unsigned size;
+		unsigned count;
+		const struct capfield **fields;
+	};
+
+	for (uint i = 0; i < array_size(dsafields); i++) {
+		const struct capfield *field = &dsafields[i];
+		print_field(field);
+	}
+	return 0;
+}
+
 int cmd_info(int argc, const char **argv, void *ctx)
 {
 	struct map_op_name *cur_op_name = NULL;
@@ -927,6 +972,8 @@ int cmd_info(int argc, const char **argv, void *ctx)
 				printf("%s[%c] ", op_name, has_op? '+' : '-');
 		}
 		printf("\n");
+
+		print_dsa_field_by_name();
 	}
 
 	return 0;
