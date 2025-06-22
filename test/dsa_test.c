@@ -225,6 +225,10 @@ static int test_batch(struct acctest_context *ctx, struct evl_desc_list *edl, si
 				dsa_prep_batch_cflush(btsk_node->btsk);
 				break;
 
+			case DSA_OPCODE_TYPE_CONV:
+				dsa_prep_batch_type_conv(btsk_node->btsk);
+				break;
+
 			case DSA_OPCODE_REDUCE:
 			case DSA_OPCODE_REDUCE_DUALCAST:
 				dsa_prep_batch_reduce(btsk_node->btsk);

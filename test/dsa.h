@@ -214,6 +214,7 @@ void dsa_prep_batch_dif_strip(struct batch_task *btsk);
 void dsa_prep_batch_dif_update(struct batch_task *btsk);
 void dsa_prep_batch_cflush(struct batch_task *btsk);
 void dsa_prep_batch_reduce(struct batch_task *btsk);
+void dsa_prep_batch_type_conv(struct batch_task *btsk);
 int dsa_wait_batch(struct batch_task *btsk, struct acctest_context *ctx);
 
 uint16_t dsa_calculate_crc_t10dif(unsigned char *buffer, size_t len, int flags);
