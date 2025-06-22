@@ -943,6 +943,7 @@ void dsa_prep_batch_reduce(struct batch_task *btsk)
 					 sub_task->xfer_size, sub_task->dflags);
 		sub_task->desc->completion_addr = (uint64_t)(sub_task->comp);
 		sub_task->comp->status = 0;
+		dsa_prep_reduce(NULL, &btsk->sub_tasks[i]);
 	}
 }
 
@@ -990,5 +991,7 @@ void dsa_prep_batch_type_conv(struct batch_task *btsk)
 					 sub_task->xfer_size, sub_task->dflags);
 		sub_task->desc->completion_addr = (uint64_t)(sub_task->comp);
 		sub_task->comp->status = 0;
+
+		dsa_prep_type_conv(NULL, &btsk->sub_tasks[i]);
 	}
 }
