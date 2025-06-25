@@ -850,6 +850,24 @@ void dsa_prep_gather_reduce(struct acctest_context *ctx, struct task *tsk)
 		hw->sgl_fmt, DSA_SGL_FORMAT_1);
 }
 
+void dsa_prep_batch_gather_reduce(struct batch_task *btsk)
+{
+	int i;
+	struct task *sub_task;
+
+	for (i = 0; i < btsk->task_num; i++) {
+		sub_task = &btsk->sub_tasks[i];
+		acctest_prep_desc_common(sub_task->desc, sub_task->opcode,
+					 (uint64_t)(sub_task->dst1),
+					 (uint64_t)(sub_task->src1),
+					 sub_task->xfer_size, sub_task->dflags);
+		sub_task->desc->completion_addr = (uint64_t)(sub_task->comp);
+		sub_task->comp->status = 0;
+		dsa_prep_gather_reduce(NULL, &btsk->sub_tasks[i]);
+	}
+}
+
+
 void dsa_prep_gather_copy(struct acctest_context *ctx, struct task *tsk)
 {
 	struct hw_desc *hw = tsk->desc;

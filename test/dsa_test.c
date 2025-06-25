@@ -233,6 +233,9 @@ static int test_batch(struct acctest_context *ctx, struct evl_desc_list *edl, si
 			case DSA_OPCODE_REDUCE_DUALCAST:
 				dsa_prep_batch_reduce(btsk_node->btsk);
 				break;
+			case DSA_OPCODE_GATHER_REDUCE:
+				dsa_prep_batch_gather_reduce(btsk_node->btsk);
+				break;
 			default:
 				err("Unsupported op %#x\n", bopcode);
 				return -EINVAL;
